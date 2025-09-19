@@ -26,16 +26,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             putenv('DB_NAME=' . $name);
             putenv('DB_USER=' . $user);
             putenv('DB_PASS=' . $pass);
-            // Run simple SQL migrations using PHP (no external CLI required)
+            // First connect without dbname to attempt database creation (if privileges allow)
+            $serverDsn = "mysql:host=$host;charset=utf8mb4";
+            $pdoServer = new PDO($serverDsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            try {
+                $pdoServer->exec("CREATE DATABASE IF NOT EXISTS `" . str_replace('`','``',$name) . "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            } catch (Throwable $e) {
+                // Ignore if user has no privilege; require DB to exist
+            }
+            // Now connect to target database
             $dsn = "mysql:host=$host;dbname=$name;charset=utf8mb4";
             $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            // Run each .sql in db/migration
+            // Run each .sql in db/migration, skipping CREATE DATABASE/USE statements
             $dir = __DIR__ . '/../db/migration';
             $files = glob($dir . '/*.sql');
             sort($files);
             foreach ($files as $file) {
-                $sql = file_get_contents($file);
-                if ($sql) { $pdo->exec($sql); }
+                $sql = file_get_contents($file) ?: '';
+                if ($sql === '') { continue; }
+                // Remove CREATE DATABASE/USE lines for shared hosts
+                $sql = preg_replace('/^\s*CREATE\s+DATABASE[\s\S]*?;\s*/im', '', $sql);
+                $sql = preg_replace('/^\s*USE\s+[^;]+;\s*/im', '', $sql);
+                $pdo->exec($sql);
             }
             $config->setMany([
                 'installed' => true,
@@ -46,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /index.php');
             exit;
         } catch (Throwable $e) {
-            $error = 'Install failed: ' . $e->getMessage();
+            $error = 'Install failed: ' . $e->getMessage() . ' - Ensure the database exists and the user has privileges.';
         }
     }
 }
