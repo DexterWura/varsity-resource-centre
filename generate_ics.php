@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
-require_once __DIR__ . '/TimetableController.php';
+require_once __DIR__ . '/controllers/TimetableController.php';
 
 use Security\Csrf;
 use Calendar\IcsGenerator;
