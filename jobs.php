@@ -9,6 +9,15 @@ $apiUrl = 'https://arbeitnow.com/api/job-board-api?page=' . $page;
 $client = new HttpClient();
 $data = $client->getJson($apiUrl) ?: ['data' => []];
 $jobs = $data['data'] ?? [];
+function truncateWords(string $text, int $maxWords = 45): array {
+    $text = trim($text);
+    if ($text === '') { return ['', false]; }
+    $words = preg_split('/\s+/', $text);
+    if (!$words) { return [$text, false]; }
+    if (count($words) <= $maxWords) { return [$text, false]; }
+    $short = implode(' ', array_slice($words, 0, $maxWords)) . '…';
+    return [$short, true];
+}
 ?>
 
     <h1 class="h4 mb-3">Student Jobs</h1>
@@ -23,10 +32,12 @@ $jobs = $data['data'] ?? [];
                         <div class="text-muted small mb-2">
                             <?= htmlspecialchars($job['company_name'] ?? 'Company') ?> · <?= htmlspecialchars($job['location'] ?? 'Remote/On-site') ?>
                         </div>
-                        <?php $desc = isset($job['description']) ? trim(strip_tags($job['description'])) : ''; ?>
-                        <p class="card-text small flex-grow-1 truncate-3"><?= htmlspecialchars($desc) ?></p>
+                        <?php $desc = isset($job['description']) ? trim(strip_tags($job['description'])) : ''; list($short, $truncated) = truncateWords($desc, 45); ?>
+                        <p class="card-text small flex-grow-1"><?= htmlspecialchars($short) ?></p>
                         <div class="d-flex gap-2 mt-auto">
-                            <button class="btn btn-sm btn-light pill-btn" data-bs-toggle="modal" data-bs-target="#jobModal" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>" data-location="<?= htmlspecialchars($job['location'] ?? '') ?>" data-desc="<?= htmlspecialchars($desc) ?>" data-url="<?= htmlspecialchars($job['url'] ?? '') ?>">See more</button>
+                            <?php if ($truncated): ?>
+                                <button class="btn btn-sm btn-light pill-btn" data-bs-toggle="modal" data-bs-target="#jobModal" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>" data-location="<?= htmlspecialchars($job['location'] ?? '') ?>" data-desc="<?= htmlspecialchars($desc) ?>" data-url="<?= htmlspecialchars($job['url'] ?? '') ?>">See more</button>
+                            <?php endif; ?>
                             <?php if (!empty($job['url'])): ?>
                                 <button class="btn btn-sm btn-primary pill-btn" data-bs-toggle="modal" data-bs-target="#applyModal" data-url="<?= htmlspecialchars($job['url']) ?>">Apply now</button>
                             <?php endif; ?>
