@@ -51,22 +51,22 @@ Day/time formats:
 3. Ensure PHP is enabled and version ≥ 7.4.
 4. Configure `config/universities.php` with your CSV export links.
 5. Visit:
-   - http://localhost/msu-time-table-master/index.php (landing)
-   - http://localhost/msu-time-table-master/timetable.php
-   - http://localhost/msu-time-table-master/jobs.php
-   - http://localhost/msu-time-table-master/articles.php
-   - http://localhost/msu-time-table-master/news.php
-   - http://localhost/msu-time-table-master/resume.php
+   - http://localhost/varsity-resource-centre/index.php (landing)
+   - http://localhost/varsity-resource-centre/timetable.php
+   - http://localhost/varsity-resource-centre/jobs.php
+   - http://localhost/varsity-resource-centrearticles.php
+   - http://localhost/varsity-resource-centre/news.php
+   - http://localhost/varsity-resource-centre/resume.php
 
-If deploying to a subfolder (e.g., `/timetable`), the navbar links are absolute to `/timetable/...`. Adjust paths in `includes/header.php` if your folder name differs.
+If deploying to a subfolder (e.g., `/varsity-resource-centre`), the navbar links are absolute to `/varsity-resource-centre/...`. Adjust paths in `includes/header.php` if your folder name differs.
 
 ## Deployment (Apache)
-Upload all files to `public_html/timetable/` (or your chosen folder). Create `.htaccess` in that folder if needed:
+Upload all files to `public_html/varsity-resource-centre/` (or your chosen folder). Create `.htaccess` in that folder if needed:
 ```
 DirectoryIndex index.php
 Options -Indexes
 ```
-Then visit `https://your-domain.com/timetable/`.
+Then visit `https://your-domain.com/varsity-resource-centre/`.
 
 ## ICS export
 From `timetable.php`, after fetching results you can click “Add to Calendar” to download an `.ics` file. Events repeat weekly until a set end date, in Africa/Harare timezone.
