@@ -1,5 +1,8 @@
 <?php
-require_once 'TimetableController.php';
+declare(strict_types=1);
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/TimetableController.php';
+use Security\Csrf;
 
 $timetableController = new TimetableController();
 $universities = $timetableController->getUniversities();
@@ -8,8 +11,13 @@ $faculties = $selectedUniversity ? $timetableController->getFaculties($selectedU
 $timetable = [];
 $invalidModules = [];
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $raw = isset($_POST['module_codes']) ? $_POST['module_codes'] : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
+        http_response_code(400);
+        echo 'Invalid request.';
+        exit;
+    }
+    $raw = isset($_POST['module_codes']) ? (string) $_POST['module_codes'] : '';
     $moduleCodes = array_map('trim', explode(',', strtoupper($raw)));
 
     $validModules = [];
@@ -39,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="row g-4">
         <div class="col-lg-8">
             <form method="POST" class="bg-white p-4 shadow-sm rounded-3">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <label for="university" class="form-label">University</label>
@@ -119,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
 
                 <form action="generate_ics.php" method="POST" class="mt-3">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
                     <input type="hidden" name="university" value="<?= htmlspecialchars($selectedUniversity) ?>">
                     <input type="hidden" name="module_codes" value="<?= htmlspecialchars(isset($_POST['module_codes']) ? $_POST['module_codes'] : '') ?>">
                     <button type="submit" class="btn btn-success"><i class="fa-regular fa-calendar-plus me-2"></i>Add to Calendar</button>

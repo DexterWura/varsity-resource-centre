@@ -1,11 +1,13 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
-<?php require_once __DIR__ . '/lib/http.php'; ?>
+<?php require_once __DIR__ . '/bootstrap.php'; ?>
+<?php use Http\HttpClient; ?>
 
 <?php
 // HN Algolia API as a free source for tech/student-relevant news
 $query = isset($_GET['q']) ? trim($_GET['q']) : 'student university scholarship internship campus';
 $apiUrl = 'https://hn.algolia.com/api/v1/search?query=' . urlencode($query) . '&tags=story';
-$data = fetch_json($apiUrl);
+$client = new HttpClient();
+$data = $client->getJson($apiUrl);
 $hits = $data['hits'] ?? [];
 ?>
 

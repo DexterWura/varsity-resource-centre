@@ -1,12 +1,14 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
-<?php require_once __DIR__ . '/lib/http.php'; ?>
+<?php require_once __DIR__ . '/bootstrap.php'; ?>
+<?php use Http\HttpClient; ?>
 
 <?php
 // Crossref works API: query for student-related topics
 $query = isset($_GET['q']) ? trim($_GET['q']) : 'student university Zimbabwe';
 $rows = 20;
 $apiUrl = 'https://api.crossref.org/works?query=' . urlencode($query) . '&rows=' . $rows;
-$data = fetch_json($apiUrl);
+$client = new HttpClient();
+$data = $client->getJson($apiUrl);
 $items = $data['message']['items'] ?? [];
 ?>
 

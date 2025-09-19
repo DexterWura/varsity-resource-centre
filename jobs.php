@@ -1,11 +1,13 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
-<?php require_once __DIR__ . '/lib/http.php'; ?>
+<?php require_once __DIR__ . '/bootstrap.php'; ?>
+<?php use Http\HttpClient; ?>
 
 <?php
 // Arbeitnow Jobs API (public)
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $apiUrl = 'https://arbeitnow.com/api/job-board-api?page=' . $page;
-$data = fetch_json($apiUrl) ?: ['data' => []];
+$client = new HttpClient();
+$data = $client->getJson($apiUrl) ?: ['data' => []];
 $jobs = $data['data'] ?? [];
 ?>
 
