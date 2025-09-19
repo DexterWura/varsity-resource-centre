@@ -2,12 +2,9 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
 use Config\Settings;
 use Database\DB;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
-if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
 $settings = new Settings(__DIR__ . '/../storage/settings.json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -72,23 +69,7 @@ try { $pdo = DB::pdo(); $rows = $pdo->query('SELECT id, message, type, is_active
 $jobRows = [];
 try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, location, is_active, created_at FROM jobs ORDER BY id DESC LIMIT 25')->fetchAll(); } catch (\Throwable $e) {}
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h4 class="mb-0">Super Admin Dashboard</h4>
-        <form method="post">
-            <input type="hidden" name="action" value="logout">
-            <button class="btn btn-outline-secondary btn-sm" type="submit">Logout</button>
-        </form>
-    </div>
+<?php $pageTitle = 'Dashboard'; include __DIR__ . '/_layout_start.php'; ?>
     <?php if (!empty($saved)): ?><div class="alert alert-success">Settings saved.</div><?php endif; ?>
     <form method="post" class="row g-3">
         <div class="col-12">
@@ -254,8 +235,6 @@ try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, 
             <button class="btn btn-primary" type="submit">Save Settings</button>
         </div>
     </form>
-</div>
-</body>
-</html>
+<?php include __DIR__ . '/_layout_end.php'; ?>
 
 
