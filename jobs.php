@@ -1,14 +1,25 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php require_once __DIR__ . '/bootstrap.php'; ?>
-<?php use Http\HttpClient; ?>
+<?php use Http\HttpClient; use Database\DB; ?>
 
 <?php
-// Arbeitnow Jobs API (public)
+// Prefer DB-backed Zimbabwe-focused jobs; fallback to public API
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$apiUrl = 'https://arbeitnow.com/api/job-board-api?page=' . $page;
-$client = new HttpClient();
-$data = $client->getJson($apiUrl) ?: ['data' => []];
-$jobs = $data['data'] ?? [];
+$perPage = 12;
+$jobs = [];
+try {
+    $pdo = DB::pdo();
+    $stmt = $pdo->prepare('SELECT title, company_name, location, description, url FROM jobs WHERE is_active = 1 ORDER BY id DESC LIMIT :lim OFFSET :off');
+    $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+    $stmt->bindValue(':off', ($page-1)*$perPage, PDO::PARAM_INT);
+    $stmt->execute();
+    $jobs = $stmt->fetchAll() ?: [];
+} catch (Throwable $e) {
+    $client = new HttpClient();
+    $apiUrl = 'https://arbeitnow.com/api/job-board-api?page=' . $page;
+    $data = $client->getJson($apiUrl) ?: ['data' => []];
+    $jobs = $data['data'] ?? [];
+}
 function truncateWords(string $text, int $maxWords = 45): array {
     $text = trim($text);
     if ($text === '') { return ['', false]; }
