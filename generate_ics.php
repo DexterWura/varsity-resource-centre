@@ -9,8 +9,9 @@ use Calendar\IcsGenerator;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
+        if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->warning('CSRF validation failed on generate_ics'); }
         http_response_code(400);
-        echo 'Invalid request.';
+        include __DIR__ . '/errors/400.php';
         exit;
     }
 
@@ -19,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $moduleCodes = array_map(function ($c) { return trim(strtoupper($c)); }, $moduleCodes);
     $timetableController = new TimetableController();
     $timetable = $university ? $timetableController->getTimetable($university, $moduleCodes) : [];
+    if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('ICS generation requested', ['university' => $university, 'modules' => $moduleCodes, 'events' => count($timetable)]); }
 
     // Start ICS File
     $ics_content = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//YourApp//NONSGML v1.0//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n";

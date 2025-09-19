@@ -18,7 +18,6 @@ if (!headers_sent()) {
 
 // Simple PSR-4-like autoloader for src/
 spl_autoload_register(function (string $class): void {
-    $prefix = '';
     $baseDir = __DIR__ . '/src/';
     $relativeClass = ltrim($class, '\\');
     $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
@@ -27,20 +26,40 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// CSRF helper
-namespace Security {
-    class Csrf {
-        public static function issueToken(): string {
-            if (empty($_SESSION['csrf_token'])) {
-                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-            }
-            return $_SESSION['csrf_token'];
-        }
-
-        public static function validate(?string $token): bool {
-            return is_string($token) && isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
-        }
-    }
+// Global logger and error handling
+try {
+    $logPath = __DIR__ . '/storage/logs/app.log';
+    $GLOBALS['app_logger'] = new \Logging\Logger($logPath);
+} catch (\Throwable $e) {
+    // ignore logger init failure
 }
 
+set_error_handler(function (int $severity, string $message, string $file = '', int $line = 0): bool {
+    if (!(error_reporting() & $severity)) { return false; }
+    if (isset($GLOBALS['app_logger'])) {
+        $GLOBALS['app_logger']->error('PHP Error', ['severity' => $severity, 'message' => $message, 'file' => $file, 'line' => $line]);
+    }
+    http_response_code(500);
+    include __DIR__ . '/errors/500.php';
+    return true;
+});
+
+set_exception_handler(function (\Throwable $e): void {
+    if (isset($GLOBALS['app_logger'])) {
+        $GLOBALS['app_logger']->error('Uncaught Exception', ['type' => get_class($e), 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+    }
+    http_response_code(500);
+    include __DIR__ . '/errors/500.php';
+});
+
+register_shutdown_function(function (): void {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        if (isset($GLOBALS['app_logger'])) {
+            $GLOBALS['app_logger']->error('Fatal Error', $error);
+        }
+        http_response_code(500);
+        include __DIR__ . '/errors/500.php';
+    }
+});
 

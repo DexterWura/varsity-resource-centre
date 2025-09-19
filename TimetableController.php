@@ -15,6 +15,7 @@ class TimetableController {
     }
 
     private function fetchCsv(string $url): array {
+        if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('Fetching CSV', ['url' => $url]); }
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
@@ -24,16 +25,19 @@ class TimetableController {
         ]);
         $csv = @file_get_contents($url, false, $context);
         if ($csv === false) {
+            if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->error('CSV fetch failed', ['url' => $url]); }
             return [];
         }
         $rows = array_map('str_getcsv', preg_split('/\r\n|\n|\r/', trim($csv)));
         if (empty($rows)) {
+            if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->warning('CSV empty', ['url' => $url]); }
             return [];
         }
         $headers = array_map('trim', array_shift($rows));
         $data = [];
         foreach ($rows as $row) {
             if (count($row) !== count($headers)) {
+                if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->warning('CSV row skipped due to header mismatch', ['url' => $url]); }
                 continue;
             }
             $assoc = [];

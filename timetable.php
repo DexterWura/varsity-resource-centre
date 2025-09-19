@@ -11,10 +11,13 @@ $faculties = $selectedUniversity ? $timetableController->getFaculties($selectedU
 $timetable = [];
 $invalidModules = [];
 
+if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('Timetable page loaded', ['selected_university' => $selectedUniversity]); }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
+        if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->warning('CSRF validation failed on timetable form'); }
         http_response_code(400);
-        echo 'Invalid request.';
+        include __DIR__ . '/errors/400.php';
         exit;
     }
     $raw = isset($_POST['module_codes']) ? (string) $_POST['module_codes'] : '';
@@ -33,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($validModules)) {
         $timetable = $timetableController->getTimetable($selectedUniversity, $validModules);
+        if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('Timetable fetched', ['count' => count($timetable)]); }
     }
 }
 ?>
