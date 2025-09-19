@@ -24,6 +24,8 @@ try {
             $stmt = $pdo->prepare('INSERT INTO popular_articles (title, source_url, clicks_count, last_clicked_at) VALUES (:t,:u,1,NOW()) ON DUPLICATE KEY UPDATE title = VALUES(title), clicks_count = clicks_count + 1, last_clicked_at = NOW()');
             $stmt->execute([':t' => $title, ':u' => $url]);
         }
+        // Expire entries older than 7 days
+        $pdo->exec("DELETE FROM popular_articles WHERE last_clicked_at IS NOT NULL AND last_clicked_at < (NOW() - INTERVAL 7 DAY)");
     } elseif ($type === 'job') {
         $title = trim((string)($post['title'] ?? ''));
         $url = trim((string)($post['url'] ?? ''));
@@ -32,6 +34,8 @@ try {
             $stmt = $pdo->prepare('INSERT INTO popular_jobs (title, company_name, source_url, clicks_count, last_clicked_at) VALUES (:t,:c,:u,1,NOW()) ON DUPLICATE KEY UPDATE title = VALUES(title), company_name = VALUES(company_name), clicks_count = clicks_count + 1, last_clicked_at = NOW()');
             $stmt->execute([':t' => $title, ':c' => $company, ':u' => $url]);
         }
+        // Expire entries older than 7 days
+        $pdo->exec("DELETE FROM popular_jobs WHERE last_clicked_at IS NOT NULL AND last_clicked_at < (NOW() - INTERVAL 7 DAY)");
     }
     http_response_code(204);
     exit;
