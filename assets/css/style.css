@@ -169,13 +169,18 @@ label {
     border-radius: 50%;
     background: #ffffff;
     border: 1px solid #e9ecef;
-    display: flex; align-items: center; justify-content: center;
+    object-fit: contain;
+    padding: 6px;
     box-shadow: 0 2px 8px rgba(0,0,0,.05);
-    animation: floatY 6s ease-in-out infinite;
+    animation: floatY 6s ease-in-out infinite, floatX 14s ease-in-out infinite;
 }
 @keyframes floatY {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
+}
+@keyframes floatX {
+    0%, 100% { margin-left: 0; }
+    50% { margin-left: 8px; }
 }
 
 /* Job card truncation */

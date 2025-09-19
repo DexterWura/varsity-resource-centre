@@ -1,5 +1,20 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
-<?php $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\'); if ($base === '') { $base = ''; } ?>
+<?php $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\'); if ($base === '') { $base = ''; }
+// Collect logos from assets/images for hero animation
+$logoFiles = glob(__DIR__ . '/assets/images/*.{png,jpg,jpeg,svg,gif}', GLOB_BRACE) ?: [];
+// Prepare up to 6 logos with random positions and delays
+$heroLogos = [];
+foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
+    $heroLogos[] = [
+        'src' => $base . '/assets/images/' . basename($path),
+        'alt' => pathinfo($path, PATHINFO_FILENAME),
+        'left' => rand(5, 80) . '%',
+        'top' => rand(5, 80) . '%',
+        'delay' => (0.2 * $i) . 's',
+        'duration' => (6 + $i) . 's',
+    ];
+}
+?>
 
     <section class="p-4 p-md-5 mb-4 rounded-3 hero-gradient fade-in">
         <div class="container-fluid py-2">
@@ -23,10 +38,9 @@
                 </div>
                 <div class="col-lg-5 d-none d-lg-block text-center logo-cloud position-relative">
                     <img src="assets/images/mymsu.png" alt="Students" class="img-fluid" style="max-height:220px;">
-                    <div class="logo-float" style="left:10%;top:10%">MSU</div>
-                    <div class="logo-float" style="left:70%;top:20%;animation-delay:.6s">UZ</div>
-                    <div class="logo-float" style="left:20%;top:70%;animation-delay:.3s">CUT</div>
-                    <div class="logo-float" style="left:75%;top:65%;animation-delay:1s">NUST</div>
+                    <?php foreach ($heroLogos as $logo): ?>
+                        <img class="logo-float" src="<?= htmlspecialchars($logo['src']) ?>" alt="<?= htmlspecialchars($logo['alt']) ?>" style="left: <?= htmlspecialchars($logo['left']) ?>; top: <?= htmlspecialchars($logo['top']) ?>; animation-delay: <?= htmlspecialchars($logo['delay']) ?>; animation-duration: <?= htmlspecialchars($logo['duration']) ?>;">
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
