@@ -1,9 +1,9 @@
-# Timetable Management System
+# Zim Varsity Timetable Management System
 
-This project is a web-based **Timetable Management System** where users can enter their faculty and module codes to generate a personalized timetable. The system also allows users to add the generated timetable to their calendar. It handles module codes with or without spaces, and it provides notifications for invalid module codes that are not available in the database.
+This project is a web-based **Timetable Management System** where students can enter their faculty and module codes to generate a personalized timetable. The system also allows users to add the generated timetable to their calendar. It handles module codes with or without spaces, and it provides notifications for invalid module codes that are not available in the database.
 
 ### Features:
-- Allows users to input module codes manually.
+- Allows students to input module codes manually.
 - Notifies users when they enter invalid or unrecognized module codes.
 - Normalizes module codes (handles case insensitivity and spaces).
 - Generates a timetable based on the entered module codes.
@@ -25,7 +25,5 @@ To run this project locally using XAMPP, follow these steps:
 1. Clone the project.
 2. Move it to XAMPP's `htdocs`.
 3. Start Apache and MySQL from XAMPP.
-4. Create the database and run the SQL script (without data).
-5. Update the database connection in the code.
-6. Access the app in the browser.
+4. Access the app in the browser.
 
