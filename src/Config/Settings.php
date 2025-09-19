@@ -39,6 +39,7 @@ class Settings {
             'adsense_client' => '',
             'adsense_slot_header' => '',
             'adsense_slot_sidebar' => '',
+            'donate_url' => '',
             'notifications' => [
                 ['message' => 'Welcome to Varsity Resource Centre!', 'type' => 'info']
             ],

@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'adsense_client' => trim((string)($_POST['adsense_client'] ?? '')),
         'adsense_slot_header' => trim((string)($_POST['adsense_slot_header'] ?? '')),
         'adsense_slot_sidebar' => trim((string)($_POST['adsense_slot_sidebar'] ?? '')),
+        'donate_url' => trim((string)($_POST['donate_url'] ?? '')),
         'theme' => [
             'primary' => (string)($_POST['theme_primary'] ?? '#0d6efd'),
             'secondary' => (string)($_POST['theme_secondary'] ?? '#6c757d'),
@@ -83,6 +84,19 @@ try { $pdo = DB::pdo(); $rows = $pdo->query('SELECT id, message, type, is_active
                         <div class="col-md-3">
                             <label class="form-label">Sidebar Slot</label>
                             <input class="form-control" name="adsense_slot_sidebar" value="<?= htmlspecialchars($data['adsense_slot_sidebar'] ?? '') ?>">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Donations</h6>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Donate URL (PayPal/Paynow/BuyMeACoffee/etc)</label>
+                            <input class="form-control" name="donate_url" value="<?= htmlspecialchars($data['donate_url'] ?? '') ?>" placeholder="https://...">
                         </div>
                     </div>
                 </div>
