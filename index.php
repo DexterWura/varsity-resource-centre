@@ -44,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="container py-4">
 
         <div class="text-center mb-4">
-            <img src="assets/images/mymsu.png" alt="Logo" class="img-fluid" style="max-width: 180px;">
             <h1 class="h3 mt-2">University Timetable Finder</h1>
             <p class="text-muted mb-0">Select your university, enter module codes, get your schedule.</p>
         </div>
@@ -70,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <span class="input-group-text"><i class="fa-solid fa-building-columns"></i></span>
                                 <select name="faculty" id="faculty" class="form-select">
                                     <?php foreach ($faculties as $faculty): ?>
-                                        <option value="<?= htmlspecialchars(isset($faculty['id']) ? $faculty['id'] : $faculty['name']) ?>"><?= htmlspecialchars($faculty['name']) ?></option>
+                                        <option value="<?= htmlspecialchars(isset($faculty['id']) && $faculty['id'] !== '' ? $faculty['id'] : (isset($faculty['code']) && $faculty['code'] !== '' ? $faculty['code'] : $faculty['name'])) ?>"><?= htmlspecialchars($faculty['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
