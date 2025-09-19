@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Auth;
 
+use Database\DB;
+
 class Auth {
     private const SESSION_KEY = 'admin_user';
     private string $usersFile;
@@ -20,10 +22,25 @@ class Auth {
     }
 
     public function login(string $username, string $password): bool {
+        // Try DB first
+        try {
+            $pdo = DB::pdo();
+            $stmt = $pdo->prepare('SELECT password_hash FROM admins WHERE username = :u LIMIT 1');
+            $stmt->execute([':u' => $username]);
+            $row = $stmt->fetch();
+            if ($row && password_verify($password, (string)$row['password_hash'])) {
+                $_SESSION[self::SESSION_KEY] = $username;
+                if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('Admin login success (db)', ['user' => $username]); }
+                return true;
+            }
+        } catch (\Throwable $e) {
+            // Fallback to file
+        }
+
         $users = $this->loadUsers();
         if (isset($users[$username]) && password_verify($password, $users[$username])) {
             $_SESSION[self::SESSION_KEY] = $username;
-            if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('Admin login success', ['user' => $username]); }
+            if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->info('Admin login success (file)', ['user' => $username]); }
             return true;
         }
         if (isset($GLOBALS['app_logger'])) { $GLOBALS['app_logger']->warning('Admin login failed', ['user' => $username]); }

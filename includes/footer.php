@@ -1,12 +1,22 @@
     </main>
     <footer class="text-center mt-5 py-4 border-top bg-white">
-        <p class="text-muted mb-1">Developed by <a href="https://www.linkedin.com/in/dexterity-wurayayi-967a64230?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank">Dexterwura</a></p>
+        <p class="text-muted mb-1">&copy; Varsity Resource Centre. Developed by <a href="https://www.linkedin.com/in/dexterity-wurayayi-967a64230?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank">Dexterwura</a></p>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <?php
     use Config\Settings;
+    use Database\DB;
     $settings = $settings ?? new Settings(__DIR__ . '/../storage/settings.json');
     $notifications = $settings->get('notifications', []);
+    // Also pull active notifications from DB if available
+    try {
+        $pdo = DB::pdo();
+        $stmt = $pdo->query("SELECT message, type FROM notifications WHERE is_active = 1 ORDER BY id DESC LIMIT 5");
+        $dbNotes = $stmt->fetchAll();
+        if (is_array($dbNotes)) {
+            foreach ($dbNotes as $n) { $notifications[] = $n; }
+        }
+    } catch (\Throwable $e) {}
     if (!empty($notifications)):
     ?>
     <script>

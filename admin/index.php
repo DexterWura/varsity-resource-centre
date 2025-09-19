@@ -4,6 +4,7 @@ require_once __DIR__ . '/../bootstrap.php';
 
 use Auth\Auth;
 use Config\Settings;
+use Database\DB;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
@@ -28,11 +29,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notificationsJson = (string)($_POST['notifications_json'] ?? '[]');
     $notifications = json_decode($notificationsJson, true);
     if (is_array($notifications)) { $updates['notifications'] = $notifications; }
+    // DB-backed notifications CRUD
+    if (!empty($_POST['new_message'])) {
+        try { $pdo = DB::pdo(); $stmt = $pdo->prepare('INSERT INTO notifications (message, type, is_active) VALUES (:m, :t, 1)'); $stmt->execute([':m' => (string)$_POST['new_message'], ':t' => (string)($_POST['new_type'] ?? 'info')]); } catch (\Throwable $e) {}
+    }
+    if (!empty($_POST['toggle_id'])) {
+        try { $pdo = DB::pdo(); $stmt = $pdo->prepare('UPDATE notifications SET is_active = 1 - is_active WHERE id = :id'); $stmt->execute([':id' => (int)$_POST['toggle_id']]); } catch (\Throwable $e) {}
+    }
+    if (!empty($_POST['delete_id'])) {
+        try { $pdo = DB::pdo(); $stmt = $pdo->prepare('DELETE FROM notifications WHERE id = :id'); $stmt->execute([':id' => (int)$_POST['delete_id']]); } catch (\Throwable $e) {}
+    }
     $settings->setMany($updates);
     $saved = true;
 }
 
 $data = $settings->all();
+// fetch notifications list
+$rows = [];
+try { $pdo = DB::pdo(); $rows = $pdo->query('SELECT id, message, type, is_active, created_at FROM notifications ORDER BY id DESC LIMIT 25')->fetchAll(); } catch (\Throwable $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,6 +114,50 @@ $data = $settings->all();
                 <div class="card-body">
                     <h6>Visitor Notifications (JSON array of {message,type})</h6>
                     <textarea class="form-control" name="notifications_json" rows="5"><?= htmlspecialchars(json_encode($data['notifications'] ?? [], JSON_PRETTY_PRINT)) ?></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Manage Live Notifications (Database)</h6>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-9">
+                            <label class="form-label">Message</label>
+                            <input name="new_message" class="form-control" placeholder="e.g. Good day students, we are live now!">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Type</label>
+                            <select name="new_type" class="form-select">
+                                <option value="info">info</option>
+                                <option value="success">success</option>
+                                <option value="warning">warning</option>
+                                <option value="danger">danger</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-primary w-100" type="submit">Add</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>ID</th><th>Message</th><th>Type</th><th>Active</th><th>Actions</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($rows as $r): ?>
+                                <tr>
+                                    <td><?= (int)$r['id'] ?></td>
+                                    <td class="text-truncate" style="max-width:400px;" title="<?= htmlspecialchars($r['message']) ?>"><?= htmlspecialchars($r['message']) ?></td>
+                                    <td><span class="badge bg-light text-dark"><?= htmlspecialchars($r['type']) ?></span></td>
+                                    <td><?= ((int)$r['is_active']===1 ? 'Yes' : 'No') ?></td>
+                                    <td class="d-flex gap-2">
+                                        <button name="toggle_id" value="<?= (int)$r['id'] ?>" class="btn btn-sm btn-light">Toggle</button>
+                                        <button name="delete_id" value="<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

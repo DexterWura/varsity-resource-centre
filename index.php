@@ -21,8 +21,12 @@
                         </div>
                     </form>
                 </div>
-                <div class="col-lg-5 d-none d-lg-block text-center">
+                <div class="col-lg-5 d-none d-lg-block text-center logo-cloud position-relative">
                     <img src="assets/images/mymsu.png" alt="Students" class="img-fluid" style="max-height:220px;">
+                    <div class="logo-float" style="left:10%;top:10%">MSU</div>
+                    <div class="logo-float" style="left:70%;top:20%;animation-delay:.6s">UZ</div>
+                    <div class="logo-float" style="left:20%;top:70%;animation-delay:.3s">CUT</div>
+                    <div class="logo-float" style="left:75%;top:65%;animation-delay:1s">NUST</div>
                 </div>
             </div>
         </div>
@@ -31,21 +35,21 @@
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Explore categories</h2>
-            <a href="<?= htmlspecialchars($base) ?>/articles.php" class="text-decoration-none">See more</a>
+            <a href="<?= htmlspecialchars($base) ?>/articles.php" class="btn btn-sm pill-outline pill-btn">See more</a>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a class="category-pill" href="<?= htmlspecialchars($base) ?>/timetable.php"><i class="fa-regular fa-calendar me-1"></i> Timetables</a>
-            <a class="category-pill" href="<?= htmlspecialchars($base) ?>/jobs.php"><i class="fa-solid fa-briefcase me-1"></i> Jobs</a>
-            <a class="category-pill" href="<?= htmlspecialchars($base) ?>/articles.php"><i class="fa-regular fa-newspaper me-1"></i> Articles</a>
-            <a class="category-pill" href="<?= htmlspecialchars($base) ?>/news.php"><i class="fa-solid fa-bolt me-1"></i> Student News</a>
-            <a class="category-pill" href="<?= htmlspecialchars($base) ?>/resume.php"><i class="fa-regular fa-file-lines me-1"></i> Resume</a>
+            <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/timetable.php"><i class="fa-regular fa-calendar me-1"></i> Timetables</a>
+            <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/jobs.php"><i class="fa-solid fa-briefcase me-1"></i> Jobs</a>
+            <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/articles.php"><i class="fa-regular fa-newspaper me-1"></i> Articles</a>
+            <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/news.php"><i class="fa-solid fa-bolt me-1"></i> Student News</a>
+            <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/resume.php"><i class="fa-regular fa-file-lines me-1"></i> Resume</a>
         </div>
     </section>
 
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular now</h2>
-            <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="text-decoration-none">View all</a>
+            <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="btn btn-sm pill-outline pill-btn">View more</a>
         </div>
         <div class="row g-3">
             <div class="col-6 col-md-4 col-lg-3">

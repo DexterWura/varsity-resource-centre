@@ -63,3 +63,29 @@ register_shutdown_function(function (): void {
     }
 });
 
+// Installer guard: if not installed, redirect to /install
+try {
+    $appConfigFile = __DIR__ . '/storage/app.php';
+    $isInstaller = (strpos($_SERVER['REQUEST_URI'] ?? '', '/install') === 0);
+    if (!$isInstaller) {
+        if (!is_file($appConfigFile)) {
+            header('Location: /install/');
+            exit;
+        }
+        $config = include $appConfigFile;
+        if (!is_array($config) || empty($config['installed'])) {
+            header('Location: /install/');
+            exit;
+        }
+        // Make DB credentials available as env
+        if (!empty($config['db'])) {
+            putenv('DB_HOST=' . ($config['db']['host'] ?? ''));
+            putenv('DB_NAME=' . ($config['db']['name'] ?? ''));
+            putenv('DB_USER=' . ($config['db']['user'] ?? ''));
+            putenv('DB_PASS=' . ($config['db']['pass'] ?? ''));
+        }
+    }
+} catch (\Throwable $e) {
+    // ignore
+}
+

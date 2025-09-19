@@ -1,81 +1,84 @@
 # Varsity Resource Centre (Zim)
 
-Varsity Resource Centre is a lightweight PHP app that brings together student essentials:
+Varsity Resource Centre is a modern PHP 8 app that aggregates student essentials:
 
-- University timetables (via Google Sheets CSV)
-- Student jobs (Arbeitnow public API)
-- Articles (Crossref public API)
-- Student news (HN Algolia public API)
-- Resume creator (browser-based, exports PDF)
+- Timetables (via Google Sheets CSV) with ICS export
+- Student jobs (Arbeitnow API) with in-app apply modal
+- Articles and student news
+- Pop-up notifications managed by admin
+- Super admin dashboard with theme and AdSense controls
 
-No database is required. Timetable data is read from public Google Sheets CSV links you control.
+Now includes: web installer, database support (admins, notifications), logging, custom error pages, and theming.
+
+## Features
+- Installer: visit `/install/` after upload, enter DB settings, site name, and color; installer runs SQL migrations and stores config.
+- Admin Dashboard: manage AdSense keys, theme colors, and notifications (CRUD, active toggle). Change password at `/admin/password.php`.
+- Logging: file-based logs in `storage/logs/app.log` with request context.
+- Error pages: custom 400/401/403/404/500/502/503/504.
+- Theming: primary color and site name applied across the UI.
+- Jobs UX: truncated descriptions, “See more” modal, and in-app “Apply now” iframe modal.
 
 ## Project structure (key files)
-- index.php – Landing page with feature cards
-- timetable.php – Timetable search and results, ICS export
-- jobs.php – Jobs feed page
-- articles.php – Articles feed page
-- news.php – Student news page
-- resume.php – One-page resume creator with PDF export
-- TimetableController.php – CSV ingestion and filtering
-- config/universities.php – Per-university CSV URLs
-- includes/header.php, includes/footer.php – Shared layout
-- lib/http.php – Tiny HTTP helper for JSON APIs
+- `index.php` – Landing page (hero search, categories, popular)
+- `timetable.php` – Timetable search and results, ICS export
+- `jobs.php` – Jobs feed with modals
+- `articles.php`, `news.php`, `resume.php`
+- `TimetableController.php` – CSV ingestion and filtering
+- `config/universities.php` – Per-university CSV URLs
+- `includes/header.php`, `includes/footer.php` – Shared layout
+- `src/` – Namespaced PHP code (Auth, Config, Database, Logging, Calendar)
+- `db/migration/` – SQL migrations (e.g., `V1__init.sql`)
+- `install/index.php` – Web installer
 
 ## Requirements
-- PHP 7.4+ (8.x recommended)
+- PHP 8.0+ (8.x recommended)
+- MySQL 5.7+/8.x (for admin + notifications)
 - Apache or Nginx serving PHP
-- Internet access (to fetch Google Sheets CSV and public APIs)
+- Internet access (Google Sheets CSV, external APIs)
 
-## Timetable data via Google Sheets
-Set your university tabs and publish them as CSV exports.
+## Quick start (hosted server)
+1. Upload all files to your `public_html/` (or web root).
+2. Visit your domain; you’ll be redirected to `/install/`.
+3. Enter DB host/name/user/pass, Site Name, and Theme color.
+4. Installer runs migrations and stores config in `storage/app.php`.
+5. Log in: `/admin/login.php` (default: `superadmin` / `ChangeMe123!`). Change password at `/admin/password.php`.
 
-Expected headers per tab:
-- Faculties: name,id,code (id and code optional, but at least name)
-- Modules: module_code,module_name
-- Timetable: module_code,day_of_week,start_time,end_time,venue
+## Running locally
+1. Clone the repo to your web root (e.g., `htdocs/varsity-resource-centre`).
+2. Ensure PHP ≥ 8.0 and MySQL are running.
+3. Visit `http://localhost/varsity-resource-centre/install/` and complete setup.
+4. Update `config/universities.php` with your Google Sheets CSV export links.
 
-CSV export URLs format (important):
+CSV export URLs format:
 ```
 https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/export?format=csv&gid=SHEET_GID
 ```
-Update `config/universities.php` with your CSV export links for each tab. Do not use `/edit?...` links.
+Expected headers:
+- Faculties: id,name
+- Modules: module_code,module_name[,faculty_id]
+- Timetable: module_code,day_of_week,start_time,end_time,venue
 
-Day/time formats:
-- day_of_week: MONDAY/TUESDAY/... or MON/TUE/...
-- time: 24-hour HH:MM (seconds optional)
-
-## Running locally (XAMPP/WAMP/MAMP)
-1. Clone the repo.
-2. Place the folder under your web root (e.g., `htdocs/msu-time-table-master`).
-3. Ensure PHP is enabled and version ≥ 7.4.
-4. Configure `config/universities.php` with your CSV export links.
-5. Visit:
-   - http://localhost/varsity-resource-centre/index.php (landing)
-   - http://localhost/varsity-resource-centre/timetable.php
-   - http://localhost/varsity-resource-centre/jobs.php
-   - http://localhost/varsity-resource-centrearticles.php
-   - http://localhost/varsity-resource-centre/news.php
-   - http://localhost/varsity-resource-centre/resume.php
-
-If deploying to a subfolder (e.g., `/varsity-resource-centre`), the navbar links are absolute to `/varsity-resource-centre/...`. Adjust paths in `includes/header.php` if your folder name differs.
-
-## Deployment (Apache)
-Upload all files to `public_html/varsity-resource-centre/` (or your chosen folder). Create `.htaccess` in that folder if needed:
+## Optional: Flyway CLI
+For local development, you can also use Flyway:
+- Configure `flyway.conf` (already present) with env vars `DB_HOST/DB_NAME/DB_USER/DB_PASS`.
+- Run:
 ```
-DirectoryIndex index.php
-Options -Indexes
+flyway migrate | cat
 ```
-Then visit `https://your-domain.com/varsity-resource-centre/`.
+Note: Production installer already runs `.sql` files in `db/migration/` via PHP.
 
-## ICS export
-From `timetable.php`, after fetching results you can click “Add to Calendar” to download an `.ics` file. Events repeat weekly until a set end date, in Africa/Harare timezone.
+## Logging
+Logs are written to `storage/logs/app.log` (auto-created). Includes INFO/WARNING/ERROR with URL, method, and IP.
 
-## Resume creator
-Open `resume.php`, fill in details, choose a design, preview, and click “Download PDF”. PDF is generated client-side using html2pdf (no server dependencies).
+## Security & CSRF
+- CSRF tokens are used on forms.
+- Admin passwords stored as hashes (bcrypt via `password_hash`).
 
 ## Contributing
-Pull requests are welcome. For new universities, add a new entry in `config/universities.php` with CSV URLs for faculties, modules, and timetable.
+1. Fork and clone.
+2. Run the installer locally.
+3. Create feature branches and open PRs.
+4. For new universities, add entries in `config/universities.php` with published CSV URLs.
 
 ## License
 MIT

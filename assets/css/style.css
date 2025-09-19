@@ -145,3 +145,43 @@ label {
 .gig-card .card-body {
     padding: 14px;
 }
+
+/* Pills and buttons */
+.pill-btn {
+    border-radius: 999px;
+    padding: 6px 14px;
+}
+.pill-outline {
+    border: 1px solid #e9ecef;
+    background: #fff;
+}
+.pill-outline:hover { background: #f8f9fa; }
+
+/* Floating logos animation */
+.logo-cloud {
+    position: relative;
+    min-height: 120px;
+}
+.logo-float {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    animation: floatY 6s ease-in-out infinite;
+}
+@keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Job card truncation */
+.truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

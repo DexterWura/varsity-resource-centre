@@ -23,10 +23,14 @@ $jobs = $data['data'] ?? [];
                         <div class="text-muted small mb-2">
                             <?= htmlspecialchars($job['company_name'] ?? 'Company') ?> · <?= htmlspecialchars($job['location'] ?? 'Remote/On-site') ?>
                         </div>
-                        <p class="card-text small flex-grow-1"><?= htmlspecialchars($job['description'] ? strip_tags($job['description']) : '') ?></p>
-                        <?php if (!empty($job['url'])): ?>
-                            <a class="btn btn-sm btn-primary mt-auto" target="_blank" rel="noopener" href="<?= htmlspecialchars($job['url']) ?>">View</a>
-                        <?php endif; ?>
+                        <?php $desc = isset($job['description']) ? trim(strip_tags($job['description'])) : ''; ?>
+                        <p class="card-text small flex-grow-1 truncate-3"><?= htmlspecialchars($desc) ?></p>
+                        <div class="d-flex gap-2 mt-auto">
+                            <button class="btn btn-sm btn-light pill-btn" data-bs-toggle="modal" data-bs-target="#jobModal" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>" data-location="<?= htmlspecialchars($job['location'] ?? '') ?>" data-desc="<?= htmlspecialchars($desc) ?>" data-url="<?= htmlspecialchars($job['url'] ?? '') ?>">See more</button>
+                            <?php if (!empty($job['url'])): ?>
+                                <button class="btn btn-sm btn-primary pill-btn" data-bs-toggle="modal" data-bs-target="#applyModal" data-url="<?= htmlspecialchars($job['url']) ?>">Apply now</button>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -34,9 +38,72 @@ $jobs = $data['data'] ?? [];
     </div>
 
     <div class="d-flex justify-content-between align-items-center mt-3">
-        <a class="btn btn-outline-secondary btn-sm<?= $page <= 1 ? ' disabled' : '' ?>" href="?page=<?= max(1, $page-1) ?>">Previous</a>
-        <a class="btn btn-outline-secondary btn-sm" href="?page=<?= $page+1 ?>">Next</a>
+        <a class="btn btn-light pill-btn<?= $page <= 1 ? ' disabled' : '' ?>" href="?page=<?= max(1, $page-1) ?>">Previous</a>
+        <a class="btn btn-light pill-btn" href="?page=<?= $page+1 ?>">Next</a>
     </div>
+
+    <!-- Job Details Modal -->
+    <div class="modal fade" id="jobModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-muted small mb-2" id="jobMeta"></div>
+            <div id="jobDesc" class="small"></div>
+          </div>
+          <div class="modal-footer">
+            <a id="jobApplyLink" target="_blank" class="btn btn-primary pill-btn">Apply</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apply In-App Modal (iframe) -->
+    <div class="modal fade" id="applyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-fullscreen-sm-down">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Apply Now</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0" style="height:70vh;">
+            <iframe id="applyFrame" src="about:blank" style="border:0;width:100%;height:100%;"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    var jobModal = document.getElementById('jobModal');
+    if (jobModal) {
+      jobModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var title = button.getAttribute('data-title') || '';
+        var company = button.getAttribute('data-company') || '';
+        var location = button.getAttribute('data-location') || '';
+        var desc = button.getAttribute('data-desc') || '';
+        var url = button.getAttribute('data-url') || '';
+        jobModal.querySelector('.modal-title').textContent = title;
+        jobModal.querySelector('#jobMeta').textContent = company + (location ? ' · ' + location : '');
+        jobModal.querySelector('#jobDesc').textContent = desc;
+        jobModal.querySelector('#jobApplyLink').href = url;
+      });
+    }
+    var applyModal = document.getElementById('applyModal');
+    if (applyModal) {
+      applyModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var url = button.getAttribute('data-url') || 'about:blank';
+        applyModal.querySelector('#applyFrame').src = url;
+      });
+      applyModal.addEventListener('hidden.bs.modal', function () {
+        applyModal.querySelector('#applyFrame').src = 'about:blank';
+      });
+    }
+    </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
 
