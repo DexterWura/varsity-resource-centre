@@ -2,6 +2,11 @@
 // Shared header for Varsity Resource Centre
 $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
 if ($base === '') { $base = ''; }
+use Config\Settings;
+use Auth\Auth;
+require_once __DIR__ . '/../bootstrap.php';
+$settings = new Settings(__DIR__ . '/../storage/settings.json');
+$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,6 +17,10 @@ if ($base === '') { $base = ''; }
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
+    <?php if ($settings->get('adsense_client')): ?>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?= htmlspecialchars($settings->get('adsense_client')) ?>" crossorigin="anonymous"></script>
+    <?php endif; ?>
+    <style>:root{ --bs-primary: <?= htmlspecialchars($settings->get('theme')['primary'] ?? '#0d6efd') ?>; }</style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
@@ -30,6 +39,11 @@ if ($base === '') { $base = ''; }
                     <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/articles.php">Articles</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/news.php">News</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/resume.php">Resume</a></li>
+                    <?php if ($auth->check()): ?>
+                        <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/admin/index.php">Admin</a></li>
+                    <?php else: ?>
+                        <li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/admin/login.php">Admin</a></li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>
