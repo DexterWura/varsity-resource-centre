@@ -102,3 +102,25 @@ label {
 .ad-slot.ad-300x100 { min-height: 100px; }
 .ad-slot.ad-300x250 { min-height: 250px; }
 .ad-slot.ad-970x90  { min-height: 90px; }
+
+/* Landing hero */
+.hero-gradient {
+    background: radial-gradient(1000px 400px at 10% -20%, rgba(13,110,253,0.08), transparent),
+                radial-gradient(800px 300px at 90% -10%, rgba(25,135,84,0.08), transparent);
+    border: 1px solid #e9ecef;
+}
+
+.fade-in {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeInUp .6s ease forwards;
+}
+
+.delay-1 { animation-delay: .05s; }
+.delay-2 { animation-delay: .1s; }
+.delay-3 { animation-delay: .15s; }
+.delay-4 { animation-delay: .2s; }
+
+@keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+}
