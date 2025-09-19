@@ -1,6 +1,6 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php require_once __DIR__ . '/bootstrap.php'; ?>
-<?php use Http\HttpClient; ?>
+<?php use Http\HttpClient; use Database\DB; ?>
 
 <?php
 // Crossref works API: query for student-related topics
@@ -30,7 +30,7 @@ $items = $data['message']['items'] ?? [];
                 $container = $it['container-title'][0] ?? '';
                 $year = $it['issued']['"date-parts"'][0][0] ?? ($it['issued']['date-parts'][0][0] ?? '');
             ?>
-            <a class="list-group-item list-group-item-action" target="_blank" rel="noopener" href="<?= htmlspecialchars($url) ?>">
+            <a class="list-group-item list-group-item-action" target="_blank" rel="noopener" href="<?= htmlspecialchars($url) ?>" data-track-article-title="<?= htmlspecialchars($title) ?>">
                 <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1"><?= htmlspecialchars($title) ?></h6>
                     <small class="text-muted"><?= htmlspecialchars($year) ?></small>
@@ -39,6 +39,16 @@ $items = $data['message']['items'] ?? [];
             </a>
         <?php endforeach; ?>
     </div>
+
+    <script>
+    document.addEventListener('click', function(e){
+        var a = e.target.closest('a[data-track-article-title]');
+        if (!a) return;
+        var title = a.getAttribute('data-track-article-title') || '';
+        var url = a.getAttribute('href') || '';
+        navigator.sendBeacon && navigator.sendBeacon('track.php?type=article', new Blob([new URLSearchParams({title:title,url:url}).toString()], {type:'application/x-www-form-urlencoded'}));
+    });
+    </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
 

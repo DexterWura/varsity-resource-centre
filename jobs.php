@@ -50,7 +50,7 @@ function truncateWords(string $text, int $maxWords = 45): array {
                                 <button class="btn btn-sm btn-light pill-btn" data-bs-toggle="modal" data-bs-target="#jobModal" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>" data-location="<?= htmlspecialchars($job['location'] ?? '') ?>" data-desc="<?= htmlspecialchars($desc) ?>" data-url="<?= htmlspecialchars($job['url'] ?? '') ?>">See more</button>
                             <?php endif; ?>
                             <?php if (!empty($job['url'])): ?>
-                                <button class="btn btn-sm btn-primary pill-btn" data-bs-toggle="modal" data-bs-target="#applyModal" data-url="<?= htmlspecialchars($job['url']) ?>">Apply now</button>
+                                <button class="btn btn-sm btn-primary pill-btn track-job" data-bs-toggle="modal" data-bs-target="#applyModal" data-url="<?= htmlspecialchars($job['url']) ?>" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>">Apply now</button>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -120,6 +120,12 @@ function truncateWords(string $text, int $maxWords = 45): array {
         var button = event.relatedTarget;
         var url = button.getAttribute('data-url') || 'about:blank';
         applyModal.querySelector('#applyFrame').src = url;
+        // Track popular job click
+        try {
+          var title = button.getAttribute('data-title') || '';
+          var company = button.getAttribute('data-company') || '';
+          navigator.sendBeacon && navigator.sendBeacon('track.php?type=job', new Blob([new URLSearchParams({title:title,url:url,company:company}).toString()], {type:'application/x-www-form-urlencoded'}));
+        } catch (e) {}
       });
       applyModal.addEventListener('hidden.bs.modal', function () {
         applyModal.querySelector('#applyFrame').src = 'about:blank';

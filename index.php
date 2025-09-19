@@ -66,6 +66,36 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
             <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="btn btn-sm pill-outline pill-btn">View more</a>
         </div>
         <div class="row g-3">
+            <?php
+            try {
+                $pdo = \Database\DB::pdo();
+                $popArticles = $pdo->query('SELECT title, source_url FROM popular_articles ORDER BY clicks_count DESC, last_clicked_at DESC LIMIT 4')->fetchAll() ?: [];
+                $popJobs = $pdo->query('SELECT title, company_name, source_url FROM popular_jobs ORDER BY clicks_count DESC, last_clicked_at DESC LIMIT 4')->fetchAll() ?: [];
+            } catch (\Throwable $e) { $popArticles = $popJobs = []; }
+            ?>
+            <?php foreach ($popArticles as $pa): ?>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card gig-card h-100">
+                    <div class="card-body">
+                        <div class="small text-muted mb-1">Article</div>
+                        <h6 class="mb-2 text-truncate" title="<?= htmlspecialchars($pa['title']) ?>"><?= htmlspecialchars($pa['title']) ?></h6>
+                    </div>
+                    <a class="stretched-link" href="<?= htmlspecialchars($pa['source_url']) ?>" target="_blank" rel="noopener"></a>
+                </div>
+            </div>
+            <?php endforeach; ?>
+            <?php foreach ($popJobs as $pj): ?>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card gig-card h-100">
+                    <div class="card-body">
+                        <div class="small text-muted mb-1">Job</div>
+                        <h6 class="mb-2 text-truncate" title="<?= htmlspecialchars($pj['title']) ?>"><?= htmlspecialchars($pj['title']) ?></h6>
+                        <div class="d-flex align-items-center text-muted small"><i class="fa-solid fa-location-dot me-1"></i> <?= htmlspecialchars($pj['company_name'] ?? '') ?></div>
+                    </div>
+                    <a class="stretched-link" href="<?= htmlspecialchars($pj['source_url'] ?? '#') ?>" target="_blank" rel="noopener"></a>
+                </div>
+            </div>
+            <?php endforeach; ?>
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="card gig-card h-100">
                     <div class="card-body">
