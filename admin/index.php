@@ -59,6 +59,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_POST['job_delete_id'])) {
         try { $pdo = DB::pdo(); $stmt = $pdo->prepare('DELETE FROM jobs WHERE id = :id'); $stmt->execute([':id' => (int)$_POST['job_delete_id']]); } catch (\Throwable $e) {}
     }
+    // Role request handlers
+    if (!empty($_POST['approve_role_id'])) {
+        try { 
+            $pdo = DB::pdo(); 
+            $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "approved", reviewed_at = NOW(), granted_by = 1 WHERE id = :id'); 
+            $stmt->execute([':id' => (int)$_POST['approve_role_id']]); 
+        } catch (\Throwable $e) {}
+    }
+    if (!empty($_POST['reject_role_id'])) {
+        try { 
+            $pdo = DB::pdo(); 
+            $notes = trim($_POST['reject_notes'] ?? '');
+            $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "rejected", reviewed_at = NOW(), granted_by = 1, notes = :notes WHERE id = :id'); 
+            $stmt->execute([':id' => (int)$_POST['reject_role_id'], ':notes' => $notes]); 
+        } catch (\Throwable $e) {}
+    }
     $settings->setMany($updates);
     $saved = true;
 }
@@ -70,6 +86,20 @@ try { $pdo = DB::pdo(); $rows = $pdo->query('SELECT id, message, type, is_active
 // jobs list
 $jobRows = [];
 try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, location, is_active, created_at, expires_at FROM jobs ORDER BY id DESC LIMIT 25')->fetchAll(); } catch (\Throwable $e) {}
+// role requests list
+$roleRequests = [];
+try { 
+    $pdo = DB::pdo(); 
+    $roleRequests = $pdo->query('
+        SELECT ura.id, ura.user_id, ura.status, ura.requested_at, ura.reviewed_at, ura.notes,
+               u.full_name, u.email, ur.name as role_name, ur.description as role_description
+        FROM user_role_assignments ura
+        JOIN users u ON ura.user_id = u.id
+        JOIN user_roles ur ON ura.role_id = ur.id
+        WHERE ura.status = "pending"
+        ORDER BY ura.requested_at DESC
+    ')->fetchAll(); 
+} catch (\Throwable $e) {}
 ?>
 <?php $pageTitle = 'Dashboard'; include __DIR__ . '/_layout_start.php'; ?>
     <?php if (!empty($saved)): ?><div class="alert alert-success">Settings saved.</div><?php endif; ?>
@@ -246,6 +276,84 @@ try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, 
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Role Requests (Pending Approval)</h6>
+                    <?php if (empty($roleRequests)): ?>
+                        <p class="text-muted">No pending role requests.</p>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Requested Role</th>
+                                        <th>Requested Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($roleRequests as $request): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($request['full_name']) ?></td>
+                                            <td><?= htmlspecialchars($request['email']) ?></td>
+                                            <td>
+                                                <span class="badge bg-primary"><?= htmlspecialchars($request['role_name']) ?></span>
+                                                <br><small class="text-muted"><?= htmlspecialchars($request['role_description']) ?></small>
+                                            </td>
+                                            <td><?= date('M j, Y', strtotime($request['requested_at'])) ?></td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <button type="submit" name="approve_role_id" value="<?= $request['id'] ?>" 
+                                                            class="btn btn-sm btn-success" 
+                                                            onclick="return confirm('Approve this role request?')">
+                                                        <i class="bi bi-check"></i> Approve
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-danger" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#rejectModal<?= $request['id'] ?>">
+                                                        <i class="bi bi-x"></i> Reject
+                                                    </button>
+                                                </div>
+                                                
+                                                <!-- Reject Modal -->
+                                                <div class="modal fade" id="rejectModal<?= $request['id'] ?>" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Reject Role Request</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <p>Rejecting role request for <strong><?= htmlspecialchars($request['full_name']) ?></strong> 
+                                                                   (<?= htmlspecialchars($request['role_name']) ?>)</p>
+                                                                <div class="mb-3">
+                                                                    <label for="reject_notes<?= $request['id'] ?>" class="form-label">Reason for rejection (optional):</label>
+                                                                    <textarea class="form-control" id="reject_notes<?= $request['id'] ?>" 
+                                                                              name="reject_notes" rows="3" 
+                                                                              placeholder="Provide feedback to help the user understand why the request was rejected..."></textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" name="reject_role_id" value="<?= $request['id'] ?>" 
+                                                                        class="btn btn-danger">Reject Request</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
