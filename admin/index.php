@@ -41,13 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_POST['job_title'])) {
         try {
             $pdo = DB::pdo();
-            $stmt = $pdo->prepare('INSERT INTO jobs (title, company_name, location, description, url, is_active) VALUES (:t,:c,:l,:d,:u,1)');
+            $expiresAt = !empty($_POST['job_expires_at']) ? $_POST['job_expires_at'] : null;
+            $stmt = $pdo->prepare('INSERT INTO jobs (title, company_name, location, description, url, expires_at, is_active) VALUES (:t,:c,:l,:d,:u,:e,1)');
             $stmt->execute([
                 ':t' => (string)$_POST['job_title'],
                 ':c' => (string)($_POST['job_company'] ?? ''),
                 ':l' => (string)($_POST['job_location'] ?? ''),
                 ':d' => (string)($_POST['job_description'] ?? ''),
                 ':u' => (string)($_POST['job_url'] ?? ''),
+                ':e' => $expiresAt,
             ]);
         } catch (\Throwable $e) {}
     }
@@ -67,7 +69,7 @@ $rows = [];
 try { $pdo = DB::pdo(); $rows = $pdo->query('SELECT id, message, type, is_active, created_at FROM notifications ORDER BY id DESC LIMIT 25')->fetchAll(); } catch (\Throwable $e) {}
 // jobs list
 $jobRows = [];
-try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, location, is_active, created_at FROM jobs ORDER BY id DESC LIMIT 25')->fetchAll(); } catch (\Throwable $e) {}
+try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, location, is_active, created_at, expires_at FROM jobs ORDER BY id DESC LIMIT 25')->fetchAll(); } catch (\Throwable $e) {}
 ?>
 <?php $pageTitle = 'Dashboard'; include __DIR__ . '/_layout_start.php'; ?>
     <?php if (!empty($saved)): ?><div class="alert alert-success">Settings saved.</div><?php endif; ?>
@@ -196,28 +198,44 @@ try { $pdo = DB::pdo(); $jobRows = $pdo->query('SELECT id, title, company_name, 
                             <label class="form-label">Location</label>
                             <input name="job_location" class="form-control" placeholder="Harare / Remote">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Description</label>
                             <input name="job_description" class="form-control" placeholder="Short summary...">
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-md-2">
+                            <label class="form-label">Expiry Date</label>
+                            <input type="datetime-local" name="job_expires_at" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-10">
                             <label class="form-label">Link</label>
                             <input name="job_url" class="form-control" placeholder="https://...">
                         </div>
-                        <div class="col-12 mt-2">
-                            <button class="btn btn-primary" type="submit">Add Job</button>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" type="submit">Add Job</button>
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm">
-                            <thead><tr><th>ID</th><th>Title</th><th>Company</th><th>Location</th><th>Active</th><th>Actions</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Title</th><th>Company</th><th>Location</th><th>Expires</th><th>Active</th><th>Actions</th></tr></thead>
                             <tbody>
                             <?php foreach ($jobRows as $r): ?>
                                 <tr>
                                     <td><?= (int)$r['id'] ?></td>
-                                    <td class="text-truncate" style="max-width:260px;" title="<?= htmlspecialchars($r['title']) ?>"><?= htmlspecialchars($r['title']) ?></td>
+                                    <td class="text-truncate" style="max-width:200px;" title="<?= htmlspecialchars($r['title']) ?>"><?= htmlspecialchars($r['title']) ?></td>
                                     <td><?= htmlspecialchars($r['company_name']) ?></td>
                                     <td><?= htmlspecialchars($r['location']) ?></td>
+                                    <td>
+                                        <?php if ($r['expires_at']): ?>
+                                            <?= date('M j, Y', strtotime($r['expires_at'])) ?>
+                                            <?php if (strtotime($r['expires_at']) < time()): ?>
+                                                <span class="badge bg-danger ms-1">Expired</span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">Never</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= ((int)$r['is_active']===1 ? 'Yes' : 'No') ?></td>
                                     <td class="d-flex gap-2">
                                         <button name="job_toggle_id" value="<?= (int)$r['id'] ?>" class="btn btn-sm btn-light">Toggle</button>

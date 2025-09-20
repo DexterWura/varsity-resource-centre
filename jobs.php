@@ -9,7 +9,7 @@ $perPage = 12;
 $jobs = [];
 try {
     $pdo = DB::pdo();
-    $stmt = $pdo->prepare('SELECT title, company_name, location, description, url FROM jobs WHERE is_active = 1 ORDER BY id DESC LIMIT :lim OFFSET :off');
+    $stmt = $pdo->prepare('SELECT title, company_name, location, description, url FROM jobs WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY id DESC LIMIT :lim OFFSET :off');
     $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
     $stmt->bindValue(':off', ($page-1)*$perPage, PDO::PARAM_INT);
     $stmt->execute();
