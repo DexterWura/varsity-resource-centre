@@ -206,44 +206,39 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: all 0.3s ease;
+        :root {
+            --dash-bg: #f8f9fb;
+            --dash-card: #ffffff;
+            --dash-text: #212529;
+            --dash-muted: #6c757d;
+            --dash-accent: #7367f0;
+            --dash-border: #e9ecef;
+            --dash-sidebar: #0f1521;
+            --dash-sidebar-text: #cfd6dd;
+            --dash-sidebar-active: #1a2335;
         }
-        .sidebar.collapsed {
-            width: 70px;
+        [data-theme="dark"] {
+            --dash-bg: #0f1521;
+            --dash-card: #121a2a;
+            --dash-text: #e9ecef;
+            --dash-muted: #aab1b9;
+            --dash-accent: #7367f0;
+            --dash-border: #243147;
+            --dash-sidebar: #0f1521;
+            --dash-sidebar-text: #cfd6dd;
+            --dash-sidebar-active: #1a2335;
         }
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 12px 20px;
-            border-radius: 10px;
-            margin: 5px 10px;
-            transition: all 0.3s ease;
-        }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            color: white;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(5px);
-        }
-        .sidebar .nav-link i {
-            width: 20px;
-            text-align: center;
-        }
-        .main-content {
-            background: #f8f9fa;
-            min-height: 100vh;
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
+        body { background: var(--dash-bg); color: var(--dash-text); }
+        .sidebar { min-height: 100vh; background: var(--dash-sidebar); transition: all 0.3s ease; }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar .nav-link { color: var(--dash-sidebar-text); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; transition: all 0.3s ease; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: var(--dash-sidebar-active); transform: translateX(5px); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .main-content { background: var(--dash-bg); min-height: 100vh; }
+        .card { background: var(--dash-card); border: 1px solid var(--dash-border); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease; }
+        .card:hover { transform: translateY(-5px); }
+        .text-muted { color: var(--dash-muted) !important; }
+        .btn-theme { border: 1px solid var(--dash-border); color: var(--dash-text); }
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -293,6 +288,7 @@ try {
                     <div class="d-flex align-items-center mb-4">
                         <i class="bi bi-mortarboard-fill text-white fs-3 me-2"></i>
                         <span class="text-white fw-bold" id="brand-text">VRC</span>
+                        <button class="btn btn-sm btn-theme ms-auto" id="dashThemeToggle" title="Toggle theme"><i class="bi bi-moon"></i></button>
                     </div>
                     
                     <ul class="nav flex-column">
@@ -361,15 +357,36 @@ try {
             <main class="col-md-9 col-lg-10 main-content">
                 <div class="p-4">
                     <!-- Header -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <h2 class="mb-1">Welcome back, <?= htmlspecialchars($user->getFullName()) ?>!</h2>
-                            <p class="text-muted mb-0">Here's what's happening with your account</p>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill text-bg-success">Active</span>
+                                <?php if (count($user->getRoles())>0): ?><span class="badge rounded-pill text-bg-primary">Roles <?= count($user->getRoles()) ?></span><?php endif; ?>
+                            </div>
                         </div>
-                        <button class="btn btn-outline-primary d-md-none" id="sidebarToggle">
-                            <i class="bi bi-list"></i>
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm d-none d-md-flex" style="max-width: 280px;">
+                                <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+                                <input type="search" class="form-control border-start-0" placeholder="Search dashboard..." oninput="window.userQuickSearch && window.userQuickSearch(this.value)">
+                            </div>
+                            <button class="btn btn-outline-primary d-md-none" id="sidebarToggle">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary position-relative" title="Notifications">
+                                <i class="bi bi-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="dashNotifBadge" style="display:none;">0</span>
+                            </button>
+                        </div>
                     </div>
+                    <ul class="nav nav-pills gap-2 mb-3">
+                        <li class="nav-item"><a class="nav-link active" href="#dashboard" data-section="dashboard">Overview</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#profile" data-section="profile">Profile</a></li>
+                        <?php if (($features['articles'] ?? true) && $user->hasPermission('write_articles')): ?><li class="nav-item"><a class="nav-link" href="#articles" data-section="articles">Articles</a></li><?php endif; ?>
+                        <?php if (($features['articles'] ?? true) && $user->hasPermission('review_articles')): ?><li class="nav-item"><a class="nav-link" href="#review" data-section="review">Review</a></li><?php endif; ?>
+                        <?php if (($features['houses'] ?? true) && $user->hasPermission('manage_houses')): ?><li class="nav-item"><a class="nav-link" href="#houses" data-section="houses">Houses</a></li><?php endif; ?>
+                        <?php if (($features['businesses'] ?? true) && $user->hasPermission('manage_business')): ?><li class="nav-item"><a class="nav-link" href="#businesses" data-section="businesses">Businesses</a></li><?php endif; ?>
+                    </ul>
 
                     <?php if ($error === 'insufficient_permissions'): ?>
                         <div class="alert alert-warning" role="alert">
@@ -396,7 +413,7 @@ try {
                                     <div class="card-body text-center">
                                         <i class="bi bi-person-circle fs-1 mb-2"></i>
                                         <h5 class="card-title">Profile</h5>
-                                        <p class="card-text">Manage your account</p>
+                                        <div class="small text-white-50">Manage your account</div>
                                     </div>
                                 </div>
                             </div>
@@ -405,7 +422,7 @@ try {
                                     <div class="card-body text-center">
                                         <i class="bi bi-shield-check fs-1 mb-2"></i>
                                         <h5 class="card-title">Roles</h5>
-                                        <p class="card-text"><?= count($user->getRoles()) ?> active</p>
+                                        <div class="small text-white-50"><?= count($user->getRoles()) ?> active</div>
                                     </div>
                                 </div>
                             </div>
@@ -414,7 +431,7 @@ try {
                                     <div class="card-body text-center">
                                         <i class="bi bi-clock-history fs-1 mb-2"></i>
                                         <h5 class="card-title">Requests</h5>
-                                        <p class="card-text"><?= count($roleRequests) ?> pending</p>
+                                        <div class="small text-white-50"><?= count($roleRequests) ?> pending</div>
                                     </div>
                                 </div>
                             </div>
@@ -768,6 +785,9 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        (function(){
+            try { var t = localStorage.getItem('dash-theme'); if (t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e) {}
+        })();
         // Sidebar toggle for mobile
         document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('show');
@@ -795,6 +815,11 @@ try {
         if (window.innerWidth <= 768) {
             document.getElementById('sidebar').classList.add('collapsed');
         }
+        document.getElementById('dashThemeToggle')?.addEventListener('click', function(){
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+            try { localStorage.setItem('dash-theme', isDark ? 'light' : 'dark'); } catch(e) {}
+        });
     </script>
 </body>
 </html>
