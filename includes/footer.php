@@ -11,42 +11,7 @@
     <?php
     use Config\Settings;
     use Database\DB;
-    $settings = $settings ?? new Settings(__DIR__ . '/../storage/settings.json');
-    $notifications = $settings->get('notifications', []);
-    // Also pull active notifications from DB if available
-    try {
-        $pdo = DB::pdo();
-        $stmt = $pdo->query("SELECT message, type FROM notifications WHERE is_active = 1 ORDER BY id DESC LIMIT 5");
-        $dbNotes = $stmt->fetchAll();
-        if (is_array($dbNotes)) {
-            foreach ($dbNotes as $n) { $notifications[] = $n; }
-        }
-    } catch (\Throwable $e) {}
-    if (!empty($notifications)):
-    ?>
-    <script>
-    (function(){
-        var notes = <?php echo json_encode($notifications, JSON_UNESCAPED_SLASHES); ?>;
-        if (!Array.isArray(notes)) return;
-        var container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.top = '16px';
-        container.style.right = '16px';
-        container.style.zIndex = '1080';
-        document.body.appendChild(container);
-        notes.slice(0, 3).forEach(function(n, i){
-            setTimeout(function(){
-                var div = document.createElement('div');
-                div.className = 'alert alert-' + (n.type || 'info');
-                div.textContent = n.message || '';
-                div.style.minWidth = '260px';
-                container.appendChild(div);
-                setTimeout(function(){ div.remove(); }, 6000);
-            }, i * 800);
-        });
-    })();
-    </script>
-    <?php endif; ?>
+    // Notifications removed
     </body>
     </html>
 

@@ -74,7 +74,7 @@ function activeClass(string $file, string $current): string { return $file === $
             <nav class="nav flex-column gap-1">
                 <a class="nav-link <?= activeClass('index.php',$current) ?>" href="/admin/index.php"><i class="fa-solid fa-gauge me-2"></i> Dashboard</a>
                 <a class="nav-link <?= activeClass('settings.php',$current) ?>" href="/admin/settings.php"><i class="fa-solid fa-sliders me-2"></i> Settings</a>
-                <a class="nav-link <?= activeClass('notifications.php',$current) ?>" href="/admin/notifications.php"><i class="fa-regular fa-bell me-2"></i> Notifications</a>
+                
                 <a class="nav-link <?= activeClass('jobs.php',$current) ?>" href="/admin/jobs.php"><i class="fa-solid fa-briefcase me-2"></i> Jobs</a>
                 <a class="nav-link <?= activeClass('migrations.php',$current) ?>" href="/admin/migrations.php"><i class="fa-solid fa-database me-2"></i> Migrations</a>
                 <a class="nav-link <?= activeClass('password.php',$current) ?>" href="/admin/password.php"><i class="fa-solid fa-key me-2"></i> Password</a>
