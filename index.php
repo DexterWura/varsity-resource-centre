@@ -30,9 +30,9 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                         </div>
                         <div class="d-flex flex-wrap gap-2 mt-2 small">
                             <span class="text-muted">Popular:</span>
-                            <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="category-pill">Computer Science</a>
-                            <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="category-pill">Accounting</a>
-                            <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="category-pill">Engineering</a>
+                            <a href="<?= htmlspecialchars($base) ?>/jobs.php" class="category-pill">Jobs</a>
+                            <a href="<?= htmlspecialchars($base) ?>/businesses.php" class="category-pill">Businesses</a>
+                            <a href="<?= htmlspecialchars($base) ?>/houses.php" class="category-pill">Offrez Accommodation</a>
                         </div>
                     </form>
                 </div>
