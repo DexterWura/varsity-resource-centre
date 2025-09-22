@@ -4,7 +4,7 @@ class TimetableController {
     private $universities;
 
     public function __construct() {
-        $this->universities = require __DIR__ . '/config/universities.php';
+        $this->universities = require __DIR__ . '/../config/universities.php';
     }
 
     private function getUniversityConfig($universityKey) {

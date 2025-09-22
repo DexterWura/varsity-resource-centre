@@ -46,6 +46,8 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
         </div>
     </section>
 
+    <?php $siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : []; ?>
+    <?php if (($siteConfig['features']['articles'] ?? true)): ?>
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Explore categories</h2>
@@ -59,83 +61,113 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
             <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/resume.php"><i class="fa-regular fa-file-lines me-1"></i> Resume</a>
         </div>
     </section>
+    <?php endif; ?>
 
+    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular now</h2>
-            <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="btn btn-sm pill-outline pill-btn">View more</a>
+            <a href="<?= htmlspecialchars($base) ?>/articles.php" class="btn btn-sm pill-outline pill-btn">See all articles</a>
         </div>
         <div class="row g-3">
             <?php
             try {
                 $pdo = \Database\DB::pdo();
-                $popArticles = $pdo->query('SELECT title, source_url FROM popular_articles ORDER BY clicks_count DESC, last_clicked_at DESC LIMIT 4')->fetchAll() ?: [];
-                $popJobs = $pdo->query('SELECT title, company_name, source_url FROM popular_jobs ORDER BY clicks_count DESC, last_clicked_at DESC LIMIT 4')->fetchAll() ?: [];
-            } catch (\Throwable $e) { $popArticles = $popJobs = []; }
+                // Popular articles (internal published)
+                $popularArticles = $pdo->query('SELECT title, slug, excerpt, published_at FROM articles WHERE status = "published" ORDER BY published_at DESC LIMIT 6')->fetchAll() ?: [];
+                // Popular houses (active)
+                $popularHouses = $pdo->query('SELECT id, title, city, price, price_type FROM houses WHERE is_active = 1 ORDER BY updated_at DESC, created_at DESC LIMIT 4')->fetchAll() ?: [];
+                // Local businesses (active)
+                $popularBusinesses = $pdo->query('SELECT id, name, category, city FROM businesses WHERE is_active = 1 ORDER BY updated_at DESC, created_at DESC LIMIT 4')->fetchAll() ?: [];
+                // Popular locations by house count
+                $popularLocations = $pdo->query('SELECT city, COUNT(*) as cnt FROM houses WHERE is_active = 1 AND city IS NOT NULL AND city <> "" GROUP BY city ORDER BY cnt DESC LIMIT 6')->fetchAll() ?: [];
+            } catch (\Throwable $e) {
+                $popularArticles = $popularHouses = $popularBusinesses = $popularLocations = [];
+            }
             ?>
-            <?php foreach ($popArticles as $pa): ?>
-            <div class="col-6 col-md-4 col-lg-3">
+
+            <?php foreach ($popularArticles as $a): ?>
+            <div class="col-12 col-md-6 col-lg-4">
                 <div class="card gig-card h-100">
                     <div class="card-body">
                         <div class="small text-muted mb-1">Article</div>
-                        <h6 class="mb-2 text-truncate" title="<?= htmlspecialchars($pa['title']) ?>"><?= htmlspecialchars($pa['title']) ?></h6>
+                        <h6 class="mb-1 text-truncate" title="<?= htmlspecialchars($a['title']) ?>"><?= htmlspecialchars($a['title']) ?></h6>
+                        <?php if (!empty($a['excerpt'])): ?>
+                        <div class="text-muted small text-truncate"><?= htmlspecialchars($a['excerpt']) ?></div>
+                        <?php endif; ?>
                     </div>
-                    <a class="stretched-link" href="<?= htmlspecialchars($pa['source_url']) ?>" target="_blank" rel="noopener"></a>
+                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/article.php?slug=<?= urlencode($a['slug']) ?>"></a>
                 </div>
             </div>
             <?php endforeach; ?>
-            <?php foreach ($popJobs as $pj): ?>
-            <div class="col-6 col-md-4 col-lg-3">
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (($siteConfig['features']['businesses'] ?? true)): ?>
+    <section class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h2 class="h5 mb-0">Popular houses</h2>
+            <a href="<?= htmlspecialchars($base) ?>/houses.php" class="btn btn-sm pill-outline pill-btn">Browse all</a>
+        </div>
+        <div class="row g-3">
+            <?php foreach ($popularHouses as $h): ?>
+            <div class="col-12 col-md-6 col-lg-3">
                 <div class="card gig-card h-100">
                     <div class="card-body">
-                        <div class="small text-muted mb-1">Job</div>
-                        <h6 class="mb-2 text-truncate" title="<?= htmlspecialchars($pj['title']) ?>"><?= htmlspecialchars($pj['title']) ?></h6>
-                        <div class="d-flex align-items-center text-muted small"><i class="fa-solid fa-location-dot me-1"></i> <?= htmlspecialchars($pj['company_name'] ?? '') ?></div>
+                        <div class="small text-muted mb-1">Off-campus</div>
+                        <h6 class="mb-2 text-truncate" title="<?= htmlspecialchars($h['title']) ?>"><?= htmlspecialchars($h['title']) ?></h6>
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span><i class="fa-solid fa-location-dot me-1"></i> <?= htmlspecialchars($h['city'] ?? '') ?></span>
+                            <span>
+                                <?= htmlspecialchars(number_format((float)$h['price'], 2)) ?>
+                                <span class="text-lowercase">/ <?= htmlspecialchars(str_replace('per_', '', $h['price_type'])) ?></span>
+                            </span>
+                        </div>
                     </div>
-                    <a class="stretched-link" href="<?= htmlspecialchars($pj['source_url'] ?? '#') ?>" target="_blank" rel="noopener"></a>
                 </div>
             </div>
             <?php endforeach; ?>
-            <div class="col-6 col-md-4 col-lg-3">
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
+    <section class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h2 class="h5 mb-0">Local businesses</h2>
+            <a href="<?= htmlspecialchars($base) ?>/businesses.php" class="btn btn-sm pill-outline pill-btn">Browse all</a>
+        </div>
+        <div class="row g-3">
+            <?php foreach ($popularBusinesses as $b): ?>
+            <div class="col-12 col-md-6 col-lg-3">
                 <div class="card gig-card h-100">
                     <div class="card-body">
-                        <div class="small text-muted mb-1">Timetables</div>
-                        <h6 class="mb-2">MSU Computing First-Year Timetable</h6>
-                        <div class="d-flex align-items-center text-muted small"><i class="fa-regular fa-clock me-1"></i> Weekly schedule</div>
+                        <div class="small text-muted mb-1">Business</div>
+                        <h6 class="mb-1 text-truncate" title="<?= htmlspecialchars($b['name']) ?>"><?= htmlspecialchars($b['name']) ?></h6>
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span><i class="fa-solid fa-location-dot me-1"></i> <?= htmlspecialchars($b['city'] ?? '') ?></span>
+                            <span><?= htmlspecialchars($b['category'] ?? '') ?></span>
+                        </div>
                     </div>
-                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/timetable.php"></a>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="card gig-card h-100">
-                    <div class="card-body">
-                        <div class="small text-muted mb-1">Jobs</div>
-                        <h6 class="mb-2">Student Assistant Roles</h6>
-                        <div class="d-flex align-items-center text-muted small"><i class="fa-solid fa-location-dot me-1"></i> Harare</div>
-                    </div>
-                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/jobs.php"></a>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="card gig-card h-100">
-                    <div class="card-body">
-                        <div class="small text-muted mb-1">Articles</div>
-                        <h6 class="mb-2">Study Techniques That Work</h6>
-                        <div class="d-flex align-items-center text-muted small"><i class="fa-regular fa-bookmark me-1"></i> Tips & Guides</div>
-                    </div>
-                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/articles.php"></a>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="card gig-card h-100">
-                    <div class="card-body">
-                        <div class="small text-muted mb-1">News</div>
-                        <h6 class="mb-2">Campus Events This Week</h6>
-                        <div class="d-flex align-items-center text-muted small"><i class="fa-regular fa-bell me-1"></i> Stay updated</div>
-                    </div>
-                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/news.php"></a>
-                </div>
-            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <section class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h2 class="h5 mb-0">Popular locations</h2>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <?php foreach ($popularLocations as $loc): ?>
+                <span class="badge bg-light text-dark"><?= htmlspecialchars($loc['city']) ?> (<?= (int)$loc['cnt'] ?>)</span>
+            <?php endforeach; ?>
+            <?php if (empty($popularLocations)): ?>
+                <span class="text-muted">No data yet.</span>
+            <?php endif; ?>
         </div>
     </section>
 

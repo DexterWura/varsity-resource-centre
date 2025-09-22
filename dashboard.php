@@ -3,6 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 use Auth\UserAuth;
+use Content\Article;
+use Security\Csrf;
 use Database\DB;
 
 $userAuth = new UserAuth();
@@ -10,6 +12,155 @@ $userAuth->requireAuth();
 
 $user = $userAuth->user();
 $error = $_GET['error'] ?? '';
+// Feature flags
+$siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : [];
+$features = $siteConfig['features'] ?? [
+	'articles' => true,
+	'houses' => true,
+	'businesses' => true,
+	'news' => true,
+	'jobs' => true,
+];
+
+// Handle article-related actions
+$successMessage = '';
+$errorMessage = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	$action = $_POST['action'] ?? '';
+	$csrf = $_POST['csrf_token'] ?? '';
+	if (!Csrf::validate($csrf)) {
+		$errorMessage = 'Invalid request token.';
+	} else {
+		try {
+			if ($action === 'article_create') {
+				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
+				$userAuth->requirePermission('write_articles');
+				$title = trim($_POST['title'] ?? '');
+				$content = trim($_POST['content'] ?? '');
+				$excerpt = trim($_POST['excerpt'] ?? '');
+				if ($title === '' || $content === '') {
+					throw new \RuntimeException('Title and content are required.');
+				}
+				$created = Article::create([
+					'title' => $title,
+					'content' => $content,
+					'excerpt' => $excerpt,
+					'author_id' => $user->getId(),
+					'status' => 'draft'
+				]);
+				if (!$created) {
+					throw new \RuntimeException('Failed to create article.');
+				}
+				$successMessage = 'Article saved as draft.';
+			} elseif ($action === 'article_submit') {
+				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
+				$userAuth->requirePermission('write_articles');
+				$articleId = (int)($_POST['article_id'] ?? 0);
+				$article = Article::findById($articleId);
+				if (!$article || $article->getAuthorId() !== $user->getId()) {
+					throw new \RuntimeException('Article not found or access denied.');
+				}
+				if (!$article->submitForReview()) {
+					throw new \RuntimeException('Failed to submit article for review.');
+				}
+				$successMessage = 'Article submitted for review.';
+			} elseif ($action === 'article_update') {
+				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
+				$userAuth->requirePermission('write_articles');
+				$articleId = (int)($_POST['article_id'] ?? 0);
+				$article = Article::findById($articleId);
+				if (!$article || $article->getAuthorId() !== $user->getId()) {
+					throw new \RuntimeException('Article not found or access denied.');
+				}
+				$title = trim($_POST['title'] ?? '');
+				$content = trim($_POST['content'] ?? '');
+				$excerpt = trim($_POST['excerpt'] ?? '');
+				if (!$article->update([
+					'title' => ($title !== '' ? $title : null),
+					'content' => ($content !== '' ? $content : null),
+					'excerpt' => ($excerpt !== '' ? $excerpt : null),
+				])) {
+					throw new \RuntimeException('Failed to update article.');
+				}
+				$successMessage = 'Article updated.';
+			} elseif ($action === 'article_approve' || $action === 'article_reject') {
+				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
+				$userAuth->requirePermission('review_articles');
+				$articleId = (int)($_POST['article_id'] ?? 0);
+				$notes = trim($_POST['notes'] ?? '');
+				$article = Article::findById($articleId);
+				if (!$article) {
+					throw new \RuntimeException('Article not found.');
+				}
+				$ok = $action === 'article_approve'
+					? $article->approve($user->getId(), $notes)
+					: $article->reject($user->getId(), $notes);
+				if (!$ok) {
+					throw new \RuntimeException('Failed to process review action.');
+				}
+				$successMessage = $action === 'article_approve' ? 'Article approved and published.' : 'Article rejected.';
+			} elseif ($action === 'house_create') {
+				if (!($features['houses'] ?? true)) { throw new \RuntimeException('Houses are disabled.'); }
+				$userAuth->requirePermission('manage_houses');
+				$pdo = DB::pdo();
+				$title = trim($_POST['title'] ?? '');
+				$city = trim($_POST['city'] ?? '');
+				$price = (float)($_POST['price'] ?? 0);
+				$priceType = $_POST['price_type'] ?? 'per_month';
+				if ($title === '' || $price <= 0) { throw new \RuntimeException('Title and price are required.'); }
+				$stmt = $pdo->prepare('INSERT INTO houses (title, price, price_type, city, owner_id, is_active) VALUES (?, ?, ?, ?, ?, 1)');
+				$stmt->execute([$title, $price, $priceType, $city, $user->getId()]);
+				$successMessage = 'House listing created.';
+			} elseif ($action === 'house_toggle') {
+				if (!($features['houses'] ?? true)) { throw new \RuntimeException('Houses are disabled.'); }
+				$userAuth->requirePermission('manage_houses');
+				$pdo = DB::pdo();
+				$id = (int)($_POST['id'] ?? 0);
+				$stmt = $pdo->prepare('UPDATE houses SET is_active = 1 - is_active WHERE id = ? AND owner_id = ?');
+				$stmt->execute([$id, $user->getId()]);
+				$successMessage = 'House listing toggled.';
+			} elseif ($action === 'house_delete') {
+				if (!($features['houses'] ?? true)) { throw new \RuntimeException('Houses are disabled.'); }
+				$userAuth->requirePermission('manage_houses');
+				$pdo = DB::pdo();
+				$id = (int)($_POST['id'] ?? 0);
+				$stmt = $pdo->prepare('DELETE FROM houses WHERE id = ? AND owner_id = ?');
+				$stmt->execute([$id, $user->getId()]);
+				$successMessage = 'House listing deleted.';
+			} elseif ($action === 'business_create') {
+				if (!($features['businesses'] ?? true)) { throw new \RuntimeException('Businesses are disabled.'); }
+				$userAuth->requirePermission('manage_business');
+				$pdo = DB::pdo();
+				$name = trim($_POST['name'] ?? '');
+				$category = trim($_POST['category'] ?? '');
+				$city = trim($_POST['city'] ?? '');
+				if ($name === '') { throw new \RuntimeException('Business name is required.'); }
+				$stmt = $pdo->prepare('INSERT INTO businesses (name, category, city, owner_id, is_active) VALUES (?, ?, ?, ?, 1)');
+				$stmt->execute([$name, $category, $city, $user->getId()]);
+				$successMessage = 'Business created.';
+			} elseif ($action === 'business_toggle') {
+				if (!($features['businesses'] ?? true)) { throw new \RuntimeException('Businesses are disabled.'); }
+				$userAuth->requirePermission('manage_business');
+				$pdo = DB::pdo();
+				$id = (int)($_POST['id'] ?? 0);
+				$stmt = $pdo->prepare('UPDATE businesses SET is_active = 1 - is_active WHERE id = ? AND owner_id = ?');
+				$stmt->execute([$id, $user->getId()]);
+				$successMessage = 'Business toggled.';
+			} elseif ($action === 'business_delete') {
+				if (!($features['businesses'] ?? true)) { throw new \RuntimeException('Businesses are disabled.'); }
+				$userAuth->requirePermission('manage_business');
+				$pdo = DB::pdo();
+				$id = (int)($_POST['id'] ?? 0);
+				$stmt = $pdo->prepare('DELETE FROM businesses WHERE id = ? AND owner_id = ?');
+				$stmt->execute([$id, $user->getId()]);
+				$successMessage = 'Business deleted.';
+			}
+		} catch (\Throwable $e) {
+			$errorMessage = $e->getMessage();
+		}
+	}
+}
 
 // Get user's role requests
 $roleRequests = [];
@@ -163,7 +314,7 @@ try {
                                 <span class="ms-2">Roles</span>
                             </a>
                         </li>
-                        <?php if ($user->hasPermission('write_articles')): ?>
+                        <?php if (($features['articles'] ?? true) && $user->hasPermission('write_articles')): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="#articles" data-section="articles">
                                 <i class="bi bi-file-text"></i>
@@ -171,7 +322,7 @@ try {
                             </a>
                         </li>
                         <?php endif; ?>
-                        <?php if ($user->hasPermission('review_articles')): ?>
+                        <?php if (($features['articles'] ?? true) && $user->hasPermission('review_articles')): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="#review" data-section="review">
                                 <i class="bi bi-check-circle"></i>
@@ -179,7 +330,7 @@ try {
                             </a>
                         </li>
                         <?php endif; ?>
-                        <?php if ($user->hasPermission('manage_houses')): ?>
+                        <?php if (($features['houses'] ?? true) && $user->hasPermission('manage_houses')): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="#houses" data-section="houses">
                                 <i class="bi bi-house"></i>
@@ -187,7 +338,7 @@ try {
                             </a>
                         </li>
                         <?php endif; ?>
-                        <?php if ($user->hasPermission('manage_business')): ?>
+                        <?php if (($features['businesses'] ?? true) && $user->hasPermission('manage_business')): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="#businesses" data-section="businesses">
                                 <i class="bi bi-building"></i>
@@ -224,6 +375,16 @@ try {
                         <div class="alert alert-warning" role="alert">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             You don't have sufficient permissions to access that feature.
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($successMessage)): ?>
+                        <div class="alert alert-success" role="alert">
+                            <?= htmlspecialchars($successMessage) ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($errorMessage)): ?>
+                        <div class="alert alert-danger" role="alert">
+                            <?= htmlspecialchars($errorMessage) ?>
                         </div>
                     <?php endif; ?>
 
@@ -292,13 +453,13 @@ try {
                                     </div>
                                     <div class="card-body">
                                         <div class="d-grid gap-2">
-                                            <?php if ($user->hasPermission('write_articles')): ?>
+                                            <?php if (($features['articles'] ?? true) && $user->hasPermission('write_articles')): ?>
                                                 <button class="btn btn-primary btn-sm">Write Article</button>
                                             <?php endif; ?>
-                                            <?php if ($user->hasPermission('manage_houses')): ?>
+                                            <?php if (($features['houses'] ?? true) && $user->hasPermission('manage_houses')): ?>
                                                 <button class="btn btn-success btn-sm">Add House</button>
                                             <?php endif; ?>
-                                            <?php if ($user->hasPermission('manage_business')): ?>
+                                            <?php if (($features['businesses'] ?? true) && $user->hasPermission('manage_business')): ?>
                                                 <button class="btn btn-info btn-sm">Add Business</button>
                                             <?php endif; ?>
                                             <a href="user_roles.php" class="btn btn-outline-secondary btn-sm">Request Role</a>
@@ -331,6 +492,275 @@ try {
                             </div>
                         </div>
                     </div>
+
+					<?php if ($user->hasPermission('manage_houses')): ?>
+					<div id="houses-section" style="display: none;">
+						<?php $csrfToken = Csrf::issueToken(); ?>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="card mb-4">
+									<div class="card-header"><h5 class="mb-0">Add House</h5></div>
+									<div class="card-body">
+										<form method="post">
+											<input type="hidden" name="action" value="house_create">
+											<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+											<div class="mb-2"><label class="form-label">Title</label><input name="title" class="form-control"></div>
+											<div class="row g-2 mb-2">
+												<div class="col-6"><label class="form-label">Price</label><input name="price" type="number" step="0.01" class="form-control"></div>
+												<div class="col-6"><label class="form-label">Price type</label>
+													<select name="price_type" class="form-select">
+														<option value="per_day">per_day</option>
+														<option value="per_week">per_week</option>
+														<option value="per_month" selected>per_month</option>
+													</select>
+												</div>
+											</div>
+											<div class="mb-2"><label class="form-label">City</label><input name="city" class="form-control"></div>
+											<button class="btn btn-primary" type="submit">Create</button>
+										</form>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<?php
+								$myHouses = [];
+								try { $pdo = DB::pdo(); $st = $pdo->prepare('SELECT * FROM houses WHERE owner_id = ? ORDER BY updated_at DESC, created_at DESC'); $st->execute([$user->getId()]); $myHouses = $st->fetchAll(); } catch (\Throwable $e) { $myHouses = []; }
+								?>
+								<div class="card mb-4">
+									<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Your Houses</h5><span class="text-muted small"><?= count($myHouses) ?></span></div>
+									<div class="card-body">
+										<?php if (empty($myHouses)): ?>
+											<p class="text-muted mb-0">No listings yet.</p>
+										<?php else: ?>
+											<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Title</th><th>City</th><th>Price</th><th>Active</th><th>Actions</th></tr></thead><tbody>
+												<?php foreach ($myHouses as $h): ?>
+												<tr>
+													<td class="text-truncate" style="max-width:200px;" title="<?= htmlspecialchars($h['title']) ?>"><?= htmlspecialchars($h['title']) ?></td>
+													<td><?= htmlspecialchars($h['city'] ?? '') ?></td>
+													<td><?= htmlspecialchars(number_format((float)$h['price'], 2)) ?> <span class="text-muted small">/ <?= htmlspecialchars(str_replace('per_', '', $h['price_type'])) ?></span></td>
+													<td><?= ((int)$h['is_active'] === 1 ? 'Yes' : 'No') ?></td>
+													<td class="d-flex gap-2">
+														<form method="post" class="d-inline"><input type="hidden" name="action" value="house_toggle"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="id" value="<?= (int)$h['id'] ?>"><button class="btn btn-sm btn-light" type="submit">Toggle</button></form>
+														<form method="post" class="d-inline" onsubmit="return confirm('Delete this listing?');"><input type="hidden" name="action" value="house_delete"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="id" value="<?= (int)$h['id'] ?>"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>
+													</td>
+												</tr>
+												<?php endforeach; ?>
+											</tbody></table></div>
+										<?php endif; ?>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<?php endif; ?>
+
+					<?php if ($user->hasPermission('manage_business')): ?>
+					<div id="businesses-section" style="display: none;">
+						<?php $csrfToken = Csrf::issueToken(); ?>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="card mb-4">
+									<div class="card-header"><h5 class="mb-0">Add Business</h5></div>
+									<div class="card-body">
+										<form method="post">
+											<input type="hidden" name="action" value="business_create">
+											<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+											<div class="mb-2"><label class="form-label">Name</label><input name="name" class="form-control"></div>
+											<div class="mb-2"><label class="form-label">Category</label><input name="category" class="form-control"></div>
+											<div class="mb-2"><label class="form-label">City</label><input name="city" class="form-control"></div>
+											<button class="btn btn-primary" type="submit">Create</button>
+										</form>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<?php $myBusinesses = []; try { $pdo = DB::pdo(); $st = $pdo->prepare('SELECT * FROM businesses WHERE owner_id = ? ORDER BY updated_at DESC, created_at DESC'); $st->execute([$user->getId()]); $myBusinesses = $st->fetchAll(); } catch (\Throwable $e) { $myBusinesses = []; } ?>
+								<div class="card mb-4">
+									<div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Your Businesses</h5><span class="text-muted small"><?= count($myBusinesses) ?></span></div>
+									<div class="card-body">
+										<?php if (empty($myBusinesses)): ?>
+											<p class="text-muted mb-0">No businesses yet.</p>
+										<?php else: ?>
+											<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>City</th><th>Category</th><th>Active</th><th>Actions</th></tr></thead><tbody>
+												<?php foreach ($myBusinesses as $b): ?>
+												<tr>
+													<td class="text-truncate" style="max-width:200px;" title="<?= htmlspecialchars($b['name']) ?>"><?= htmlspecialchars($b['name']) ?></td>
+													<td><?= htmlspecialchars($b['city'] ?? '') ?></td>
+													<td><?= htmlspecialchars($b['category'] ?? '') ?></td>
+													<td><?= ((int)$b['is_active'] === 1 ? 'Yes' : 'No') ?></td>
+													<td class="d-flex gap-2">
+														<form method="post" class="d-inline"><input type="hidden" name="action" value="business_toggle"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="id" value="<?= (int)$b['id'] ?>"><button class="btn btn-sm btn-light" type="submit">Toggle</button></form>
+														<form method="post" class="d-inline" onsubmit="return confirm('Delete this business?');"><input type="hidden" name="action" value="business_delete"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>"><input type="hidden" name="id" value="<?= (int)$b['id'] ?>"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>
+													</td>
+												</tr>
+												<?php endforeach; ?>
+											</tbody></table></div>
+										<?php endif; ?>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<?php endif; ?>
+
+					<?php if (($features['articles'] ?? true) && $user->hasPermission('write_articles')): ?>
+					<div id="articles-section" style="display: none;">
+						<?php
+							$csrfToken = Csrf::issueToken();
+							$myArticles = Article::getByAuthor($user->getId(), 50, 0);
+						?>
+						<div class="row">
+							<div class="col-md-6">
+								<div class="card mb-4">
+									<div class="card-header">
+										<h5 class="mb-0">Write Article</h5>
+									</div>
+									<div class="card-body">
+										<form method="post">
+											<input type="hidden" name="action" value="article_create">
+											<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+											<div class="mb-3">
+												<label class="form-label">Title</label>
+												<input name="title" class="form-control" placeholder="Enter title">
+											</div>
+											<div class="mb-3">
+												<label class="form-label">Content</label>
+												<textarea name="content" rows="6" class="form-control" placeholder="Write your article..."></textarea>
+											</div>
+											<div class="mb-3">
+												<label class="form-label">Excerpt (optional)</label>
+												<textarea name="excerpt" rows="2" class="form-control" placeholder="Short summary"></textarea>
+											</div>
+											<button class="btn btn-primary" type="submit">Save Draft</button>
+										</form>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="card mb-4">
+									<div class="card-header d-flex justify-content-between align-items-center">
+										<h5 class="mb-0">Your Articles</h5>
+										<span class="text-muted small"><?= count($myArticles) ?> total</span>
+									</div>
+									<div class="card-body">
+										<?php if (empty($myArticles)): ?>
+											<p class="text-muted mb-0">No articles yet. Create one on the left.</p>
+										<?php else: ?>
+											<div class="table-responsive">
+												<table class="table align-middle">
+													<thead>
+														<tr>
+															<th>Title</th>
+															<th>Status</th>
+															<th>Actions</th>
+														</tr>
+													</thead>
+													<tbody>
+														<?php foreach ($myArticles as $a): ?>
+															<tr>
+																<td class="text-truncate" style="max-width:240px;" title="<?= htmlspecialchars($a['title']) ?>"><?= htmlspecialchars($a['title']) ?></td>
+																<td><span class="badge bg-light text-dark text-uppercase"><?= htmlspecialchars($a['status']) ?></span></td>
+																<td class="d-flex gap-2">
+																	<form method="post" class="d-inline">
+																		<input type="hidden" name="action" value="article_submit">
+																		<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+																		<input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+																		<button class="btn btn-sm btn-outline-primary" type="submit" <?= ($a['status'] !== 'draft' ? 'disabled' : '') ?>>Submit</button>
+																	</form>
+																	<button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#edit-<?= (int)$a['id'] ?>">Edit</button>
+																</td>
+															</tr>
+															<tr class="collapse" id="edit-<?= (int)$a['id'] ?>">
+																<td colspan="3">
+																	<form method="post">
+																		<input type="hidden" name="action" value="article_update">
+																		<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+																		<input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+																		<div class="row g-2">
+																			<div class="col-md-6">
+																				<input name="title" class="form-control" value="<?= htmlspecialchars($a['title']) ?>">
+																			</div>
+																			<div class="col-md-6">
+																				<input name="excerpt" class="form-control" placeholder="Excerpt (optional)" value="<?= htmlspecialchars($a['excerpt'] ?? '') ?>">
+																			</div>
+																			<div class="col-12">
+																				<textarea name="content" rows="4" class="form-control" placeholder="Content"><?= htmlspecialchars($a['content']) ?></textarea>
+																			</div>
+																		</div>
+																		<div class="mt-2">
+																			<button class="btn btn-sm btn-primary" type="submit">Save</button>
+																		</div>
+																	</form>
+																</td>
+															</tr>
+													<?php endforeach; ?>
+												</tbody>
+											</table>
+											</div>
+										<?php endif; ?>
+									</div>
+								</div>
+							</div>
+						</div>
+						<?php endif; ?>
+
+					<?php if (($features['articles'] ?? true) && $user->hasPermission('review_articles')): ?>
+					<div id="review-section" style="display: none;">
+						<?php
+							$csrfToken = Csrf::issueToken();
+							$pending = Article::getForReview(50, 0);
+						?>
+						<div class="card">
+							<div class="card-header d-flex justify-content-between align-items-center">
+								<h5 class="mb-0">Articles Awaiting Review</h5>
+								<span class="text-muted small"><?= count($pending) ?> pending</span>
+							</div>
+							<div class="card-body">
+								<?php if (empty($pending)): ?>
+									<p class="text-muted mb-0">No articles to review.</p>
+								<?php else: ?>
+									<div class="table-responsive">
+										<table class="table align-middle">
+											<thead>
+												<tr>
+													<th>Title</th>
+													<th>Author</th>
+													<th>Actions</th>
+												</tr>
+											</thead>
+											<tbody>
+												<?php foreach ($pending as $p): ?>
+													<tr>
+														<td class="text-truncate" style="max-width:320px;" title="<?= htmlspecialchars($p['title']) ?>"><?= htmlspecialchars($p['title']) ?></td>
+														<td><?= htmlspecialchars($p['author_name'] ?? 'Author') ?></td>
+														<td class="d-flex gap-2">
+															<button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#rev-<?= (int)$p['id'] ?>">Review</button>
+														</td>
+													</tr>
+													<tr class="collapse" id="rev-<?= (int)$p['id'] ?>">
+														<td colspan="3">
+															<div class="mb-2">
+																<div class="fw-semibold mb-1">Content</div>
+																<div class="border rounded p-2" style="white-space: pre-wrap;"><?= nl2br(htmlspecialchars($p['content'])) ?></div>
+															</div>
+															<form method="post" class="d-flex gap-2">
+																<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+																<input type="hidden" name="article_id" value="<?= (int)$p['id'] ?>">
+																<input name="notes" class="form-control" placeholder="Review notes (optional)">
+																<button name="action" value="article_reject" class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+																<button name="action" value="article_approve" class="btn btn-sm btn-primary" type="submit">Approve & Publish</button>
+															</form>
+														</td>
+													</tr>
+												<?php endforeach; ?>
+											</tbody>
+										</table>
+									</div>
+								<?php endif; ?>
+							</div>
+						</div>
+					</div>
+					<?php endif; ?>
                 </div>
             </main>
         </div>
