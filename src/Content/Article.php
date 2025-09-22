@@ -57,6 +57,8 @@ class Article
         try {
             $pdo = DB::pdo();
             $slug = self::generateSlug($data['title']);
+            $safeContent = self::sanitizeHtml((string)($data['content'] ?? ''));
+            $safeExcerpt = trim((string)($data['excerpt'] ?? ''));
             
             $stmt = $pdo->prepare('
                 INSERT INTO articles (title, slug, content, excerpt, featured_image, 
@@ -66,8 +68,8 @@ class Article
             $stmt->execute([
                 $data['title'],
                 $slug,
-                $data['content'],
-                $data['excerpt'] ?? '',
+                $safeContent,
+                $safeExcerpt,
                 $data['featured_image'] ?? '',
                 $data['meta_title'] ?? $data['title'],
                 $data['meta_description'] ?? '',
@@ -106,8 +108,8 @@ class Article
             $stmt->execute([
                 $data['title'] ?? null,
                 $slug,
-                $data['content'] ?? null,
-                $data['excerpt'] ?? null,
+                isset($data['content']) ? self::sanitizeHtml((string)$data['content']) : null,
+                isset($data['excerpt']) ? trim((string)$data['excerpt']) : null,
                 $data['featured_image'] ?? null,
                 $data['meta_title'] ?? null,
                 $data['meta_description'] ?? null,
@@ -258,6 +260,27 @@ class Article
         return $slug;
     }
 
+    private static function sanitizeHtml(string $html): string
+    {
+        // Allow a safe subset of tags and basic attributes
+        $allowedTags = '<p><br><strong><b><em><i><u><ol><ul><li><a><img><h1><h2><h3><h4><h5><h6><blockquote><pre><code><hr>';
+        $clean = strip_tags($html, $allowedTags);
+        // Remove event handlers and javascript: URLs
+        $clean = preg_replace('/on\w+\s*=\s*"[^"]*"/i', '', $clean);
+        $clean = preg_replace("/on\w+\s*='[^']*'/i", '', $clean);
+        $clean = preg_replace('/javascript\s*:/i', '', $clean);
+        // Restrict href/src to http(s) data images only
+        $clean = preg_replace_callback('/\s(href|src)\s*=\s*([\"\"][^\"\"]*[\"\"]|[^\s>]+)/i', function($m){
+            $attr = strtolower($m[1]);
+            $val = trim($m[2], " \"'\t\n\r");
+            if (preg_match('/^(https?:|data:image\/(png|jpeg|gif);base64,)/i', $val)) {
+                return ' ' . $attr . '="' . htmlspecialchars($val, ENT_QUOTES) . '"';
+            }
+            return '';
+        }, $clean);
+        return $clean;
+    }
+
     public function getId(): int
     {
         return (int)$this->article['id'];
@@ -341,6 +364,17 @@ class Article
     public function getUpdatedAt(): string
     {
         return $this->article['updated_at'];
+    }
+
+    public static function deleteById(int $id, int $authorId): bool
+    {
+        try {
+            $pdo = DB::pdo();
+            $stmt = $pdo->prepare('DELETE FROM articles WHERE id = ? AND author_id = ?');
+            return $stmt->execute([$id, $authorId]);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public function isPublished(): bool

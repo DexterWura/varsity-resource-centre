@@ -100,7 +100,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					throw new \RuntimeException('Failed to process review action.');
 				}
 				$successMessage = $action === 'article_approve' ? 'Article approved and published.' : 'Article rejected.';
-			} elseif ($action === 'house_create') {
+            } elseif ($action === 'article_delete') {
+                if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
+                $userAuth->requirePermission('write_articles');
+                $articleId = (int)($_POST['article_id'] ?? 0);
+                $article = Article::findById($articleId);
+                if (!$article || $article->getAuthorId() !== $user->getId()) {
+                    throw new \RuntimeException('Article not found or access denied.');
+                }
+                if (!Article::deleteById($articleId, $user->getId())) {
+                    throw new \RuntimeException('Failed to delete article.');
+                }
+                $successMessage = 'Article deleted.';
+            } elseif ($action === 'house_create') {
 				if (!($features['houses'] ?? true)) { throw new \RuntimeException('Houses are disabled.'); }
 				$userAuth->requirePermission('manage_houses');
 				$pdo = DB::pdo();
@@ -628,12 +640,12 @@ try {
 						?>
 						<div class="row">
 							<div class="col-md-6">
-								<div class="card mb-4">
+                            <div class="card mb-4">
 									<div class="card-header">
 										<h5 class="mb-0">Write Article</h5>
 									</div>
 									<div class="card-body">
-										<form method="post">
+                                    <form method="post">
 											<input type="hidden" name="action" value="article_create">
 											<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 											<div class="mb-3">
@@ -641,8 +653,24 @@ try {
 												<input name="title" class="form-control" placeholder="Enter title">
 											</div>
 											<div class="mb-3">
-												<label class="form-label">Content</label>
-												<textarea name="content" rows="6" class="form-control" placeholder="Write your article..."></textarea>
+                                            <label class="form-label">Content</label>
+                                            <div class="btn-toolbar mb-2" role="toolbar">
+                                                <div class="btn-group btn-group-sm me-2">
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="bold"><i class="bi bi-type-bold"></i></button>
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="italic"><i class="bi bi-type-italic"></i></button>
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="underline"><i class="bi bi-type-underline"></i></button>
+                                                </div>
+                                                <div class="btn-group btn-group-sm me-2">
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="insertUnorderedList"><i class="bi bi-list-ul"></i></button>
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="insertOrderedList"><i class="bi bi-list-ol"></i></button>
+                                                </div>
+                                                <div class="btn-group btn-group-sm me-2">
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="createLink"><i class="bi bi-link-45deg"></i></button>
+                                                    <button type="button" class="btn btn-outline-secondary" data-cmd="removeFormat"><i class="bi bi-eraser"></i></button>
+                                                </div>
+                                            </div>
+                                            <div id="editor" contenteditable="true" class="form-control" style="min-height:220px"></div>
+                                            <textarea name="content" id="editorInput" class="d-none"></textarea>
 											</div>
 											<div class="mb-3">
 												<label class="form-label">Excerpt (optional)</label>
@@ -682,9 +710,15 @@ try {
 																		<input type="hidden" name="action" value="article_submit">
 																		<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 																		<input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
-																		<button class="btn btn-sm btn-outline-primary" type="submit" <?= ($a['status'] !== 'draft' ? 'disabled' : '') ?>>Submit</button>
+                                                    <button class="btn btn-sm btn-outline-primary" type="submit" <?= ($a['status'] !== 'draft' ? 'disabled' : '') ?>>Submit</button>
+                                                </form>
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Delete this article? This cannot be undone.');">
+                                                    <input type="hidden" name="action" value="article_delete">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                    <input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+                                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
 																	</form>
-																	<button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#edit-<?= (int)$a['id'] ?>">Edit</button>
+                                                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#edit-<?= (int)$a['id'] ?>">Edit</button>
 																</td>
 															</tr>
 															<tr class="collapse" id="edit-<?= (int)$a['id'] ?>">
@@ -700,9 +734,25 @@ try {
 																			<div class="col-md-6">
 																				<input name="excerpt" class="form-control" placeholder="Excerpt (optional)" value="<?= htmlspecialchars($a['excerpt'] ?? '') ?>">
 																			</div>
-																			<div class="col-12">
-																				<textarea name="content" rows="4" class="form-control" placeholder="Content"><?= htmlspecialchars($a['content']) ?></textarea>
-																			</div>
+                                                    <div class="col-12">
+                                                        <div class="btn-toolbar mb-2" role="toolbar">
+                                                            <div class="btn-group btn-group-sm me-2">
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="bold"><i class="bi bi-type-bold"></i></button>
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="italic"><i class="bi bi-type-italic"></i></button>
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="underline"><i class="bi bi-type-underline"></i></button>
+                                                            </div>
+                                                            <div class="btn-group btn-group-sm me-2">
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="insertUnorderedList"><i class="bi bi-list-ul"></i></button>
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="insertOrderedList"><i class="bi bi-list-ol"></i></button>
+                                                            </div>
+                                                            <div class="btn-group btn-group-sm me-2">
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="createLink"><i class="bi bi-link-45deg"></i></button>
+                                                                <button type="button" class="btn btn-outline-secondary" data-cmd="removeFormat"><i class="bi bi-eraser"></i></button>
+                                                            </div>
+                                                        </div>
+                                                        <div contenteditable="true" class="form-control article-editor" style="min-height:160px"><?= $a['content'] ?></div>
+                                                        <textarea name="content" class="d-none"></textarea>
+                                                    </div>
 																		</div>
 																		<div class="mt-2">
 																			<button class="btn btn-sm btn-primary" type="submit">Save</button>
@@ -819,6 +869,39 @@ try {
             var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
             try { localStorage.setItem('dash-theme', isDark ? 'light' : 'dark'); } catch(e) {}
+        });
+
+        // Minimal WYSIWYG handling
+        function bindEditor(toolbar, editable, hiddenInput){
+            if (!toolbar || !editable || !hiddenInput) return;
+            toolbar.querySelectorAll('[data-cmd]').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    var cmd = btn.getAttribute('data-cmd');
+                    if (cmd === 'createLink') {
+                        var url = prompt('Enter URL');
+                        if (url) document.execCommand('createLink', false, url);
+                    } else {
+                        document.execCommand(cmd, false, null);
+                    }
+                    editable.focus();
+                });
+            });
+            editable.form?.addEventListener('submit', function(){
+                hiddenInput.value = editable.innerHTML;
+            });
+        }
+        // Bind create form editor
+        (function(){
+            var toolbar = document.querySelector('#editor')?.previousElementSibling;
+            var editable = document.getElementById('editor');
+            var hidden = document.getElementById('editorInput');
+            bindEditor(toolbar, editable, hidden);
+        })();
+        // Bind all update editors
+        document.querySelectorAll('.article-editor').forEach(function(ed){
+            var toolbar = ed.previousElementSibling;
+            var hidden = ed.nextElementSibling;
+            bindEditor(toolbar, ed, hidden);
         });
     </script>
 </body>
