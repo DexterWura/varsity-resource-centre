@@ -17,6 +17,7 @@ $siteConfig['features'] = $siteConfig['features'] ?? [
 	'businesses' => true,
 	'news' => true,
 	'jobs' => true,
+	'timetable' => true,
 ];
 
 $saved = false;
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$siteConfig['features']['businesses'] = isset($_POST['feat_businesses']);
 		$siteConfig['features']['news'] = isset($_POST['feat_news']);
 		$siteConfig['features']['jobs'] = isset($_POST['feat_jobs']);
+		$siteConfig['features']['timetable'] = isset($_POST['feat_timetable']);
 
 		// Ensure storage dir
 		$dir = dirname($storageFile);
@@ -83,6 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				<div class="col-md-4 form-check">
 					<input class="form-check-input" type="checkbox" id="feat_jobs" name="feat_jobs" <?= $siteConfig['features']['jobs'] ? 'checked' : '' ?>>
 					<label class="form-check-label" for="feat_jobs">Jobs</label>
+				</div>
+				<div class="col-md-4 form-check">
+					<input class="form-check-input" type="checkbox" id="feat_timetable" name="feat_timetable" <?= $siteConfig['features']['timetable'] ? 'checked' : '' ?>>
+					<label class="form-check-label" for="feat_timetable">Timetable</label>
 				</div>
 			</div>
 			<div class="mt-3">

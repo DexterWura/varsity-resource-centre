@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
+<?php $siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : []; ?>
+<?php if (!(($siteConfig['features']['timetable'] ?? true))): include __DIR__ . '/errors/404.php'; exit; endif; ?>
 <?php include __DIR__ . '/includes/header.php'; ?>
 
     <div class="text-center mb-4">

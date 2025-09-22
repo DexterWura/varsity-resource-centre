@@ -85,7 +85,7 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			<div class="collapse navbar-collapse" id="vrcNav">
 				<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
 					<li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/index.php">Home</a></li>
-					<li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/timetable.php">Timetable</a></li>
+					<?php if (($siteConfig['features']['timetable'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/timetable.php">Timetable</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['houses'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/houses.php">Houses</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['businesses'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/businesses.php">Businesses</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['jobs'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/jobs.php">Jobs</a></li><?php endif; ?>
