@@ -37,7 +37,6 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                     </form>
                 </div>
                 <div class="col-lg-5 d-none d-lg-block text-center logo-cloud position-relative">
-                    <img src="assets/images/mymsu.png" alt="Students" class="img-fluid" style="max-height:220px;">
                     <?php foreach ($heroLogos as $logo): ?>
                         <img class="logo-float" src="<?= htmlspecialchars($logo['src']) ?>" alt="<?= htmlspecialchars($logo['alt']) ?>" style="left: <?= htmlspecialchars($logo['left']) ?>; top: <?= htmlspecialchars($logo['top']) ?>; animation-delay: <?= htmlspecialchars($logo['delay']) ?>; animation-duration: <?= htmlspecialchars($logo['duration']) ?>;">
                     <?php endforeach; ?>
@@ -177,14 +176,11 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
             <div class="col-lg-8">
                 <div class="d-flex flex-wrap gap-3 align-items-center">
                     <span class="text-muted">Trusted by students at</span>
-                    <img src="assets/images/mymsu.png" alt="MSU" height="32">
+                    <span class="badge bg-light text-dark">MSU</span>
                     <span class="badge bg-light text-dark">UZ</span>
                     <span class="badge bg-light text-dark">CUT</span>
                     <span class="badge bg-light text-dark">NUST</span>
                 </div>
-            </div>
-            <div class="col-lg-4 text-lg-end">
-                <a href="<?= htmlspecialchars($base) ?>/timetable.php" class="btn btn-success"><i class="fa-regular fa-calendar-plus me-1"></i> Get your timetable</a>
             </div>
         </div>
     </section>
