@@ -141,9 +141,15 @@ label {
 
 .gig-card {
     border: 1px solid #e9ecef;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .2s ease;
 }
 .gig-card .card-body {
     padding: 14px;
+}
+.gig-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+    border-color: #dee2e6;
 }
 
 /* Pills and buttons */
@@ -156,6 +162,22 @@ label {
     background: #fff;
 }
 .pill-outline:hover { background: #f8f9fa; }
+
+/* Interactive hover shimmer for links */
+.category-pill, .pill-btn {
+    position: relative;
+    overflow: hidden;
+}
+.category-pill::after, .pill-btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -150%;
+    height: 100%; width: 150%;
+    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.6) 50%, transparent 100%);
+    transform: skewX(-20deg);
+    transition: left .5s ease;
+}
+.category-pill:hover::after, .pill-btn:hover::after { left: 150%; }
 
 /* Floating logos animation */
 .logo-cloud {
@@ -174,6 +196,8 @@ label {
     box-shadow: 0 2px 8px rgba(0,0,0,.05);
     animation: floatY 6s ease-in-out infinite, floatX 14s ease-in-out infinite;
 }
+/* add gentle glow on hover */
+.logo-float:hover { box-shadow: 0 6px 18px rgba(13,110,253,.18); }
 @keyframes floatY {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
