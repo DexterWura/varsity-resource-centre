@@ -209,7 +209,7 @@ try {
                         <i class="bi bi-house"></i>
                         <span class="ms-2">Visit Site</span>
                     </a>
-                    <a href="login.php?logout=1" class="nav-link text-danger">
+                    <a href="logout.php" class="nav-link text-danger">
                         <i class="bi bi-box-arrow-right"></i>
                         <span class="ms-2">Logout</span>
                     </a>
@@ -386,6 +386,57 @@ try {
                 }
             }
         });
+        
+        // Session timeout warning (30 minutes = 1800 seconds)
+        let sessionTimeout = 1800; // 30 minutes
+        let warningTime = 300; // Show warning 5 minutes before timeout
+        let warningShown = false;
+        
+        function checkSessionTimeout() {
+            if (sessionTimeout <= warningTime && !warningShown) {
+                warningShown = true;
+                showSessionWarning();
+            }
+            
+            if (sessionTimeout <= 0) {
+                window.location.href = '/admin/logout.php?timeout=1';
+                return;
+            }
+            
+            sessionTimeout--;
+        }
+        
+        function showSessionWarning() {
+            const warning = document.createElement('div');
+            warning.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+            warning.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            warning.innerHTML = `
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Session Timeout Warning</strong><br>
+                Your session will expire in 5 minutes due to inactivity. 
+                <a href="#" onclick="extendSession()" class="alert-link">Click here to extend</a> or you will be automatically logged out.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(warning);
+        }
+        
+        function extendSession() {
+            // Make a request to extend the session
+            fetch('/admin/dashboard.php', { method: 'HEAD' })
+                .then(() => {
+                    sessionTimeout = 1800; // Reset timeout
+                    warningShown = false;
+                    // Remove warning
+                    const warning = document.querySelector('.alert-warning');
+                    if (warning) warning.remove();
+                })
+                .catch(() => {
+                    window.location.href = '/admin/logout.php?timeout=1';
+                });
+        }
+        
+        // Check session timeout every minute
+        setInterval(checkSessionTimeout, 60000);
     </script>
 </body>
 </html>

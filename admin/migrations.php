@@ -177,7 +177,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                         <i class="bi bi-house"></i>
                         <span class="ms-2">Visit Site</span>
                     </a>
-                    <a href="login.php?logout=1" class="nav-link text-danger">
+                    <a href="logout.php" class="nav-link text-danger">
                         <i class="bi bi-box-arrow-right"></i>
                         <span class="ms-2">Logout</span>
                     </a>

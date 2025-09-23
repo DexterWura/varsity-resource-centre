@@ -9,11 +9,19 @@ if (session_status() === PHP_SESSION_NONE) {
 // Default timezone
 date_default_timezone_set('Africa/Harare');
 
-// Basic security headers (only if headers not already sent)
+// Enhanced security headers (only if headers not already sent)
 if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
+    header('X-XSS-Protection: 1; mode=block');
     header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+    
+    // Additional security for admin pages
+    if (strpos($_SERVER['REQUEST_URI'] ?? '', '/admin') === 0) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+        header('Content-Security-Policy: default-src \'self\'; script-src \'self\' \'unsafe-inline\' cdn.jsdelivr.net; style-src \'self\' \'unsafe-inline\' cdn.jsdelivr.net; img-src \'self\' data:; font-src \'self\' cdn.jsdelivr.net;');
+    }
 }
 
 // Simple PSR-4-like autoloader for src/

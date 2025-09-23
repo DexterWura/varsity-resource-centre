@@ -6,6 +6,22 @@ use Auth\Auth;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 
+// Handle logout
+if (isset($_GET['logout']) || isset($_POST['logout'])) {
+    $auth->logout();
+    header('Location: /admin/login.php?logged_out=1');
+    exit;
+}
+
+// If already logged in, redirect to dashboard
+if ($auth->check()) {
+    header('Location: /admin/dashboard.php');
+    exit;
+}
+
+$error = '';
+$success = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -14,6 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     $error = 'Invalid credentials';
+}
+
+// Check for logout message
+if (isset($_GET['logged_out'])) {
+    $success = 'You have been successfully logged out.';
+} elseif (isset($_GET['timeout'])) {
+    $error = 'Your session has expired due to inactivity. Please log in again.';
 }
 ?>
 <!DOCTYPE html>
@@ -30,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body">
             <h5 class="mb-3">Super Admin Login</h5>
             <?php if (!empty($error)): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+            <?php if (!empty($success)): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
             <form method="post">
                 <div class="mb-3">
                     <label class="form-label">Username</label>
