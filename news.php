@@ -4,7 +4,7 @@
 
 <?php
 // HN Algolia API as a free source for tech/student-relevant news
-$query = isset($_GET['q']) ? trim($_GET['q']) : 'student university scholarship internship campus';
+$query = isset($_GET['q']) ? trim($_GET['q']) : 'student news';
 $apiUrl = 'https://hn.algolia.com/api/v1/search?query=' . urlencode($query) . '&tags=story';
 $client = new HttpClient();
 $data = $client->getJson($apiUrl);
