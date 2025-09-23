@@ -16,23 +16,30 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
 }
 ?>
 
-    <section class="p-4 p-md-5 mb-4 rounded-3 hero-gradient fade-in">
-        <div class="container-fluid py-2">
+    <section class="p-4 p-md-5 mb-4 rounded-3 hero-gradient fade-in position-relative overflow-hidden">
+        <!-- Animated background elements -->
+        <div class="hero-bg-animation">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+        </div>
+        
+        <div class="container-fluid py-2 position-relative">
             <div class="row align-items-center g-3">
                 <div class="col-lg-7">
-                    <h1 class="display-6 mb-2">Everything students need, in one place</h1>
-                    <p class="col-lg-10 fs-6 text-muted mb-3">Timetables, jobs, articles, and campus news tailored for Zimbabwean universities.</p>
+                    <h1 class="display-6 mb-2 hero-title">Everything students need, in one place</h1>
+                    <p class="col-lg-10 fs-6 text-muted mb-3 hero-subtitle">Timetables, jobs, articles, and campus news tailored for Zimbabwean universities.</p>
                     <form class="hero-search" action="<?= htmlspecialchars($base) ?>/timetable.php" method="get">
-                        <div class="input-group input-group-lg">
+                        <div class="input-group input-group-lg hero-search-box">
                             <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
                             <input type="text" class="form-control border-start-0" placeholder="Search modules, faculties, or universities..." aria-label="Search">
-                            <button class="btn btn-primary" type="submit">Search</button>
+                            <button class="btn btn-primary hero-search-btn" type="submit">Search</button>
                         </div>
-                        <div class="d-flex flex-wrap gap-2 mt-2 small">
+                        <div class="d-flex flex-wrap gap-2 mt-2 small hero-pills">
                             <span class="text-muted">Popular:</span>
-                            <a href="<?= htmlspecialchars($base) ?>/jobs.php" class="category-pill">Jobs</a>
-                            <a href="<?= htmlspecialchars($base) ?>/businesses.php" class="category-pill">Businesses</a>
-                            <a href="<?= htmlspecialchars($base) ?>/houses.php" class="category-pill">Offrez Accommodation</a>
+                            <a href="<?= htmlspecialchars($base) ?>/jobs.php" class="category-pill pill-animate">Jobs</a>
+                            <a href="<?= htmlspecialchars($base) ?>/businesses.php" class="category-pill pill-animate">Businesses</a>
+                            <a href="<?= htmlspecialchars($base) ?>/houses.php" class="category-pill pill-animate">Offrez Accommodation</a>
                         </div>
                     </form>
                 </div>
@@ -47,24 +54,24 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
 
     <?php $siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : []; ?>
     <?php if (($siteConfig['features']['articles'] ?? true)): ?>
-    <section class="mb-4">
+    <section class="mb-4 section-animate">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Explore categories</h2>
             <a href="<?= htmlspecialchars($base) ?>/articles.php" class="btn btn-sm pill-outline pill-btn">See more</a>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <?php $siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : []; ?>
-            <?php if (($siteConfig['features']['timetable'] ?? true)): ?><a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/timetable.php"><i class="fa-regular fa-calendar me-1"></i> Timetables</a><?php endif; ?>
-            <?php if (($siteConfig['features']['jobs'] ?? true)): ?><a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/jobs.php"><i class="fa-solid fa-briefcase me-1"></i> Jobs</a><?php endif; ?>
-            <?php if (($siteConfig['features']['articles'] ?? true)): ?><a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/articles.php"><i class="fa-regular fa-newspaper me-1"></i> Articles</a><?php endif; ?>
-            <?php if (($siteConfig['features']['news'] ?? true)): ?><a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/news.php"><i class="fa-solid fa-bolt me-1"></i> Student News</a><?php endif; ?>
-            <a class="btn btn-light pill-btn" href="<?= htmlspecialchars($base) ?>/resume.php"><i class="fa-regular fa-file-lines me-1"></i> Resume</a>
+            <?php if (($siteConfig['features']['timetable'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/timetable.php"><i class="fa-regular fa-calendar me-1"></i> Timetables</a><?php endif; ?>
+            <?php if (($siteConfig['features']['jobs'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/jobs.php"><i class="fa-solid fa-briefcase me-1"></i> Jobs</a><?php endif; ?>
+            <?php if (($siteConfig['features']['articles'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/articles.php"><i class="fa-regular fa-newspaper me-1"></i> Articles</a><?php endif; ?>
+            <?php if (($siteConfig['features']['news'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/news.php"><i class="fa-solid fa-bolt me-1"></i> Student News</a><?php endif; ?>
+            <a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/resume.php"><i class="fa-regular fa-file-lines me-1"></i> Resume</a>
         </div>
     </section>
     <?php endif; ?>
 
     <?php if (($siteConfig['features']['houses'] ?? true)): ?>
-    <section class="mb-4">
+    <section class="mb-4 section-animate">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular now</h2>
             <a href="<?= htmlspecialchars($base) ?>/articles.php" class="btn btn-sm pill-outline pill-btn">See all articles</a>
@@ -88,7 +95,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
 
             <?php foreach ($popularArticles as $a): ?>
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="card gig-card h-100">
+                <div class="card gig-card h-100 article-card">
                     <div class="card-body">
                         <div class="small text-muted mb-1">Article</div>
                         <h6 class="mb-1 text-truncate" title="<?= htmlspecialchars($a['title']) ?>"><?= htmlspecialchars($a['title']) ?></h6>
@@ -104,8 +111,8 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
     </section>
     <?php endif; ?>
 
-    <?php if (($siteConfig['features']['businesses'] ?? true)): ?>
-    <section class="mb-4">
+    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
+    <section class="mb-4 section-animate">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular houses</h2>
             <a href="<?= htmlspecialchars($base) ?>/houses.php" class="btn btn-sm pill-outline pill-btn">Browse all</a>
@@ -113,7 +120,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
         <div class="row g-3">
             <?php foreach ($popularHouses as $h): ?>
             <div class="col-12 col-md-6 col-lg-3">
-                <div class="card gig-card h-100">
+                <div class="card gig-card h-100 house-card">
                     <div class="card-body">
                         <div class="small text-muted mb-1">Off-campus</div>
                         <h6 class="mb-2 text-truncate" title="<?= htmlspecialchars($h['title']) ?>"><?= htmlspecialchars($h['title']) ?></h6>
@@ -125,6 +132,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                             </span>
                         </div>
                     </div>
+                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/house.php?id=<?= (int)$h['id'] ?>"></a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -132,8 +140,8 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
     </section>
     <?php endif; ?>
 
-    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
-    <section class="mb-4">
+    <?php if (($siteConfig['features']['businesses'] ?? true)): ?>
+    <section class="mb-4 section-animate">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Local businesses</h2>
             <a href="<?= htmlspecialchars($base) ?>/businesses.php" class="btn btn-sm pill-outline pill-btn">Browse all</a>
@@ -141,7 +149,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
         <div class="row g-3">
             <?php foreach ($popularBusinesses as $b): ?>
             <div class="col-12 col-md-6 col-lg-3">
-                <div class="card gig-card h-100">
+                <div class="card gig-card h-100 business-card">
                     <div class="card-body">
                         <div class="small text-muted mb-1">Business</div>
                         <h6 class="mb-1 text-truncate" title="<?= htmlspecialchars($b['name']) ?>"><?= htmlspecialchars($b['name']) ?></h6>
@@ -150,6 +158,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                             <span><?= htmlspecialchars($b['category'] ?? '') ?></span>
                         </div>
                     </div>
+                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/business.php?id=<?= (int)$b['id'] ?>"></a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -157,13 +166,13 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
     </section>
     <?php endif; ?>
 
-    <section class="mb-4">
+    <section class="mb-4 section-animate">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular locations</h2>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <?php foreach ($popularLocations as $loc): ?>
-                <span class="badge bg-light text-dark"><?= htmlspecialchars($loc['city']) ?> (<?= (int)$loc['cnt'] ?>)</span>
+                <span class="badge bg-light text-dark location-badge"><?= htmlspecialchars($loc['city']) ?> (<?= (int)$loc['cnt'] ?>)</span>
             <?php endforeach; ?>
             <?php if (empty($popularLocations)): ?>
                 <span class="text-muted">No data yet.</span>
@@ -171,15 +180,15 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
         </div>
     </section>
 
-    <section class="mb-4">
+    <section class="mb-4 section-animate">
         <div class="row g-3 align-items-center">
             <div class="col-lg-8">
                 <div class="d-flex flex-wrap gap-3 align-items-center">
                     <span class="text-muted">Trusted by students at</span>
-                    <span class="badge bg-light text-dark">MSU</span>
-                    <span class="badge bg-light text-dark">UZ</span>
-                    <span class="badge bg-light text-dark">CUT</span>
-                    <span class="badge bg-light text-dark">NUST</span>
+                    <span class="badge bg-light text-dark university-badge">MSU</span>
+                    <span class="badge bg-light text-dark university-badge">UZ</span>
+                    <span class="badge bg-light text-dark university-badge">CUT</span>
+                    <span class="badge bg-light text-dark university-badge">NUST</span>
                 </div>
             </div>
         </div>
