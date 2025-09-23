@@ -1,20 +1,20 @@
 -- Add image support for articles, houses, and businesses
 -- This migration adds image-related columns and creates an images table
 
--- Add image columns to articles table
+-- Add image columns to articles table (if not already exists)
 ALTER TABLE articles 
-ADD COLUMN featured_image VARCHAR(500) NULL COMMENT 'Featured image URL for the article',
-ADD COLUMN image_gallery JSON NULL COMMENT 'Array of image URLs for article gallery';
+ADD COLUMN IF NOT EXISTS featured_image VARCHAR(500) NULL COMMENT 'Featured image URL for the article',
+ADD COLUMN IF NOT EXISTS image_gallery JSON NULL COMMENT 'Array of image URLs for article gallery';
 
 -- Add image columns to houses table (if not already exists)
 ALTER TABLE houses 
-ADD COLUMN featured_image VARCHAR(500) NULL COMMENT 'Featured image URL for the house',
-ADD COLUMN image_gallery JSON NULL COMMENT 'Array of image URLs for house gallery';
+ADD COLUMN IF NOT EXISTS featured_image VARCHAR(500) NULL COMMENT 'Featured image URL for the house',
+ADD COLUMN IF NOT EXISTS image_gallery JSON NULL COMMENT 'Array of image URLs for house gallery';
 
 -- Add image columns to businesses table (if not already exists)
 ALTER TABLE businesses 
-ADD COLUMN featured_image VARCHAR(500) NULL COMMENT 'Featured image URL for the business',
-ADD COLUMN image_gallery JSON NULL COMMENT 'Array of image URLs for business gallery';
+ADD COLUMN IF NOT EXISTS featured_image VARCHAR(500) NULL COMMENT 'Featured image URL for the business',
+ADD COLUMN IF NOT EXISTS image_gallery JSON NULL COMMENT 'Array of image URLs for business gallery';
 
 -- Create images table for centralized image management
 CREATE TABLE IF NOT EXISTS images (
@@ -130,9 +130,9 @@ SET featured_image = (
 WHERE featured_image IS NULL;
 
 -- Create indexes for better performance
-CREATE INDEX idx_images_entity_type_id ON images(entity_type, entity_id);
-CREATE INDEX idx_images_type ON images(image_type);
-CREATE INDEX idx_images_sort ON images(sort_order);
+CREATE INDEX IF NOT EXISTS idx_images_entity_type_id ON images(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_images_type ON images(image_type);
+CREATE INDEX IF NOT EXISTS idx_images_sort ON images(sort_order);
 
 -- Add foreign key constraints (optional, can be enabled if needed)
 -- ALTER TABLE images ADD CONSTRAINT fk_images_articles FOREIGN KEY (entity_id) REFERENCES articles(id) ON DELETE CASCADE;

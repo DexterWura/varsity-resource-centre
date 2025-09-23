@@ -17,4 +17,4 @@ INSERT INTO test_migration_table (name, description) VALUES
 ('Test Item 3', 'Final test item to show migration works');
 
 -- Add an index for better performance
-CREATE INDEX idx_test_migration_name ON test_migration_table(name);
+CREATE INDEX IF NOT EXISTS idx_test_migration_name ON test_migration_table(name);

@@ -10,8 +10,27 @@ Varsity Resource Centre is a modern PHP 8 app that aggregates student essentials
 
 Now includes: web installer, database support (admins, notifications), logging, custom error pages, and theming.
 
+## Quick Start (Fresh Installation)
+
+1. **Upload Files**: Upload all files to your web server
+2. **Set Permissions**: Ensure `storage/` directory is writable
+3. **Visit Site**: Go to your domain - it will automatically redirect to `/install/`
+4. **Configure**: Fill in database details, site name, and features
+5. **Install**: Click "Install" to run migrations and setup
+
+**If you don't get redirected to install:**
+- Run `php fresh_install.php` to reset installation state
+- Or manually set `'installed' => false` in `storage/app.php`
+
+**If installation fails with migration errors:**
+- Run `php fix_migration_conflicts.php` to diagnose issues
+- Run `php reset_database.php` to start with clean database (WARNING: deletes all data)
+- Check `storage/logs/app.log` for detailed error messages
+
 ## Features
-- Installer: visit `/install/` after upload, enter DB settings, site name, and color; installer runs SQL migrations and stores config.
+- **Automatic Installer**: Redirects to `/install/` on fresh installation
+- **Database Setup**: Enter DB settings, site name, and color; installer runs SQL migrations
+- **Feature Selection**: Choose which features to enable during installation
 - Admin Dashboard: manage AdSense keys, theme colors, and notifications (CRUD, active toggle). Change password at `/admin/password.php`.
 - Logging: file-based logs in `storage/logs/app.log` with request context.
 - Error pages: custom 400/401/403/404/500/502/503/504.
