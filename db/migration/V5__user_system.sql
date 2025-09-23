@@ -19,16 +19,7 @@ CREATE TABLE IF NOT EXISTS roles (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- User role assignments (simplified)
-CREATE TABLE IF NOT EXISTS user_roles (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  role_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_user_role (user_id, role_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- User role assignments table will be created in V13 migration
 
 -- Insert default roles
 INSERT IGNORE INTO roles (name, description, permissions) VALUES
@@ -40,11 +31,7 @@ INSERT IGNORE INTO roles (name, description, permissions) VALUES
 INSERT IGNORE INTO users (email, full_name, password_hash, is_active, email_verified) VALUES
 ('admin@varsityresource.com', 'Super Admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1);
 
--- Assign admin role to the default admin user
-INSERT IGNORE INTO user_roles (user_id, role_id) 
-SELECT u.id, r.id 
-FROM users u, roles r 
-WHERE u.email = 'admin@varsityresource.com' AND r.name = 'admin';
+-- Admin role assignment will be handled in V13 migration
 
 -- Articles system
 CREATE TABLE IF NOT EXISTS articles (
