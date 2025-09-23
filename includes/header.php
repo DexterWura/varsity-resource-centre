@@ -70,20 +70,17 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
-	<!-- <link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css"> - Temporarily disabled for testing -->
+	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css">
 	<script>
 		// Initialize Tools dropdown
 		document.addEventListener('DOMContentLoaded', function() {
-			console.log('DOM loaded, initializing dropdown...');
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
-				console.log('Tools dropdown found, initializing...');
+				// Initialize Bootstrap dropdown
 				var dropdown = new bootstrap.Dropdown(toolsDropdown);
-				console.log('Dropdown initialized');
 				
-				// Force dropdown to work
+				// Manual toggle for reliable functionality
 				toolsDropdown.addEventListener('click', function(e) {
-					console.log('Tools clicked');
 					e.preventDefault();
 					
 					var menu = toolsDropdown.nextElementSibling;
@@ -91,15 +88,11 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 						// Toggle the show class manually
 						if (menu.classList.contains('show')) {
 							menu.classList.remove('show');
-							console.log('Hiding dropdown');
 						} else {
 							menu.classList.add('show');
-							console.log('Showing dropdown');
 						}
 					}
 				});
-			} else {
-				console.log('Tools dropdown NOT found');
 			}
 			
 			// Sticky Navigation Functionality
