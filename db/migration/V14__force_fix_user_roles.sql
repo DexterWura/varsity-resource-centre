@@ -1,14 +1,8 @@
 -- Force fix user_roles table structure
--- This migration aggressively fixes the user_roles table structure
+-- This migration fixes the user_roles table structure without transaction control
 
--- Disable foreign key checks
-SET FOREIGN_KEY_CHECKS = 0;
-
--- Drop the user_roles table completely (ignore any constraints)
+-- Drop the user_roles table if it exists (this will fail gracefully if there are foreign key constraints)
 DROP TABLE IF EXISTS user_roles;
-
--- Re-enable foreign key checks
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- Create user_roles table with correct structure
 CREATE TABLE user_roles (
