@@ -5,6 +5,7 @@ require_once __DIR__ . '/../bootstrap.php';
 use Auth\Auth;
 use Content\Article;
 use Database\DB;
+use Database\MigrationRunner;
 use Security\Csrf;
 use Config\Settings;
 
@@ -18,6 +19,9 @@ $errorMessage = '';
 // Load settings
 $settings = new Settings(__DIR__ . '/../storage/settings.json');
 $data = $settings->all();
+
+// Initialize migration runner
+$migrationRunner = new MigrationRunner();
 
 // Feature flags
 $siteConfig = is_file(__DIR__ . '/../storage/app.php') ? (include __DIR__ . '/../storage/app.php') : [];
@@ -140,6 +144,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "rejected", reviewed_at = NOW(), granted_by = 1, notes = ? WHERE id = ?');
                 $stmt->execute([$notes, (int)$_POST['role_id']]);
                 $successMessage = 'Role request rejected.';
+                
+            // Migration actions
+            } elseif ($action === 'run_migrations') {
+                $results = $migrationRunner->runAllPendingMigrations();
+                if (empty($results)) {
+                    $successMessage = 'No pending migrations to run.';
+                } else {
+                    $successCount = count(array_filter($results, fn($r) => $r['success']));
+                    $successMessage = "Migration completed. {$successCount}/" . count($results) . " migrations successful.";
+                }
+            } elseif ($action === 'validate_migrations') {
+                $issues = $migrationRunner->validateMigrations();
+                if (empty($issues)) {
+                    $successMessage = 'All migrations are valid.';
+                } else {
+                    $errorMessage = 'Validation issues found: ' . implode(', ', $issues);
+                }
             }
             
         } catch (\Throwable $e) {
@@ -170,20 +191,27 @@ try {
     // Jobs
     $jobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 10')->fetchAll();
     
+    // Migration data
+    $pendingMigrations = $migrationRunner->getPendingMigrations();
+    $migrationHistory = $migrationRunner->getMigrationHistory();
+    
     // Stats
     $stats = [
         'total_users' => (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(),
         'total_articles' => (int)$pdo->query('SELECT COUNT(*) FROM articles')->fetchColumn(),
         'pending_reviews' => count($pendingArticles),
         'total_jobs' => (int)$pdo->query('SELECT COUNT(*) FROM jobs WHERE is_active = 1')->fetchColumn(),
+        'pending_migrations' => count($pendingMigrations),
     ];
     
 } catch (\Throwable $e) {
-    $stats = ['total_users' => 0, 'total_articles' => 0, 'pending_reviews' => 0, 'total_jobs' => 0];
+    $stats = ['total_users' => 0, 'total_articles' => 0, 'pending_reviews' => 0, 'total_jobs' => 0, 'pending_migrations' => 0];
     $pendingArticles = [];
     $assignedArticles = [];
     $roleRequests = [];
     $jobs = [];
+    $pendingMigrations = [];
+    $migrationHistory = [];
 }
 ?>
 <!DOCTYPE html>
@@ -298,7 +326,7 @@ try {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="migrations.php">
+                            <a class="nav-link" href="#migrations" data-section="migrations">
                                 <i class="bi bi-database-gear"></i>
                                 <span class="ms-2">Migrations</span>
                             </a>
@@ -408,8 +436,8 @@ try {
                                             <a href="#jobs" class="btn btn-outline-success" data-section="jobs">
                                                 <i class="bi bi-briefcase me-2"></i>Post New Job
                                             </a>
-                                            <a href="migrations.php" class="btn btn-outline-warning">
-                                                <i class="bi bi-database-gear me-2"></i>Run Migrations
+                                            <a href="#migrations" class="btn btn-outline-warning" data-section="migrations">
+                                                <i class="bi bi-database-gear me-2"></i>Run Migrations (<?= $stats['pending_migrations'] ?> pending)
                                             </a>
                                         </div>
                                     </div>
@@ -841,6 +869,145 @@ try {
                                 <i class="bi bi-check-circle me-2"></i>Save All Settings
                             </button>
                         </form>
+                    </div>
+
+                    <!-- Migrations Section -->
+                    <div id="migrations-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="bi bi-database-gear me-2"></i>Migration Actions</h5>
+                                        <span class="badge bg-warning"><?= count($pendingMigrations) ?> pending</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                <input type="hidden" name="action" value="run_migrations">
+                                                <button class="btn btn-primary w-100" type="submit" onclick="return confirm('Run all pending migrations? This action cannot be undone.')">
+                                                    <i class="bi bi-play-circle me-2"></i>Run All Pending Migrations
+                                                </button>
+                                            </form>
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                <input type="hidden" name="action" value="validate_migrations">
+                                                <button class="btn btn-outline-info w-100" type="submit">
+                                                    <i class="bi bi-check-circle me-2"></i>Validate Migrations
+                                                </button>
+                                            </form>
+                                        </div>
+                                        
+                                        <?php if (!empty($pendingMigrations)): ?>
+                                        <div class="mt-4">
+                                            <h6 class="text-warning">Pending Migrations:</h6>
+                                            <div class="list-group list-group-flush">
+                                                <?php foreach ($pendingMigrations as $migration): ?>
+                                                    <div class="list-group-item px-0">
+                                                        <div class="fw-bold"><?= htmlspecialchars($migration['version']) ?></div>
+                                                        <small class="text-muted"><?= htmlspecialchars($migration['description']) ?></small>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        <?php else: ?>
+                                        <div class="mt-4 text-center">
+                                            <i class="bi bi-check-circle text-success fs-1"></i>
+                                            <p class="text-muted mt-2">All migrations are up to date!</p>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Migration History</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php if (empty($migrationHistory)): ?>
+                                            <p class="text-muted">No migration history available.</p>
+                                        <?php else: ?>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Version</th>
+                                                            <th>Description</th>
+                                                            <th>Status</th>
+                                                            <th>Executed</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php foreach (array_slice($migrationHistory, 0, 10) as $migration): ?>
+                                                            <tr>
+                                                                <td><?= htmlspecialchars($migration['version']) ?></td>
+                                                                <td class="text-truncate" style="max-width: 200px;" title="<?= htmlspecialchars($migration['description']) ?>">
+                                                                    <?= htmlspecialchars($migration['description']) ?>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge <?= $migration['success'] ? 'bg-success' : 'bg-danger' ?>">
+                                                                        <?= $migration['success'] ? 'Success' : 'Failed' ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <small class="text-muted">
+                                                                        <?= date('M j, Y H:i', strtotime($migration['executed_at'])) ?>
+                                                                    </small>
+                                                                </td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Migration Details -->
+                        <?php if (!empty($pendingMigrations)): ?>
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Migration Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="accordion" id="migrationAccordion">
+                                    <?php foreach ($pendingMigrations as $index => $migration): ?>
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="heading<?= $index ?>">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $index ?>">
+                                                    <strong><?= htmlspecialchars($migration['version']) ?></strong>
+                                                    <span class="ms-2 text-muted">- <?= htmlspecialchars($migration['description']) ?></span>
+                                                </button>
+                                            </h2>
+                                            <div id="collapse<?= $index ?>" class="accordion-collapse collapse" data-bs-parent="#migrationAccordion">
+                                                <div class="accordion-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <h6>Migration Info:</h6>
+                                                            <ul class="list-unstyled">
+                                                                <li><strong>Version:</strong> <?= htmlspecialchars($migration['version']) ?></li>
+                                                                <li><strong>Description:</strong> <?= htmlspecialchars($migration['description']) ?></li>
+                                                                <li><strong>Type:</strong> <?= htmlspecialchars($migration['type']) ?></li>
+                                                                <li><strong>Checksum:</strong> <code><?= htmlspecialchars($migration['checksum']) ?></code></li>
+                                                            </ul>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <h6>SQL Preview:</h6>
+                                                            <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto; font-size: 0.8rem;"><?= htmlspecialchars(substr($migration['script'], 0, 500)) ?><?= strlen($migration['script']) > 500 ? '...' : '' ?></pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </main>
