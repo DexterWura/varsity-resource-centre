@@ -3,11 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
 use Auth\Auth;
-use Content\Article;
 use Database\DB;
-use Database\MigrationRunner;
 use Security\Csrf;
-use Config\Settings;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
@@ -16,66 +13,56 @@ $user = $auth->user();
 $successMessage = '';
 $errorMessage = '';
 
-// Load settings
-$settings = new Settings(__DIR__ . '/../storage/settings.json');
-$data = $settings->all();
+// Handle admin actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    $csrf = $_POST['csrf_token'] ?? '';
+    
+    if (!Csrf::validate($csrf)) {
+        $errorMessage = 'Invalid request token.';
+    } else {
+        try {
+            // Job management
+            if ($action === 'job_create') {
+                if (!empty($_POST['job_title'])) {
+                    $pdo = DB::pdo();
+                    $expiresAt = !empty($_POST['job_expires_at']) ? $_POST['job_expires_at'] : null;
+                    $stmt = $pdo->prepare('INSERT INTO jobs (title, company_name, location, description, url, expires_at, is_active) VALUES (?,?,?,?,?,?,1)');
+                    $stmt->execute([
+                        $_POST['job_title'],
+                        $_POST['job_company'] ?? '',
+                        $_POST['job_location'] ?? '',
+                        $_POST['job_description'] ?? '',
+                        $_POST['job_url'] ?? '',
+                        $expiresAt,
+                    ]);
+                    $successMessage = 'Job posted successfully.';
+                }
+            } elseif ($action === 'job_toggle') {
+                $pdo = DB::pdo();
+                $stmt = $pdo->prepare('UPDATE jobs SET is_active = 1 - is_active WHERE id = ?');
+                $stmt->execute([(int)$_POST['job_id']]);
+                $successMessage = 'Job status updated.';
+                
+            } elseif ($action === 'job_delete') {
+                $pdo = DB::pdo();
+                $stmt = $pdo->prepare('DELETE FROM jobs WHERE id = ?');
+                $stmt->execute([(int)$_POST['job_id']]);
+                $successMessage = 'Job deleted.';
+            }
+            
+        } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
+        }
+    }
+}
 
-// Initialize migration runner
-$migrationRunner = new MigrationRunner();
-
-// Feature flags
-$siteConfig = is_file(__DIR__ . '/../storage/app.php') ? (include __DIR__ . '/../storage/app.php') : [];
-$features = $siteConfig['features'] ?? [
-    'articles' => true,
-    'houses' => true,
-    'businesses' => true,
-    'news' => true,
-    'jobs' => true,
-];
-
-// Get data for dashboard
+// Get jobs
 try {
     $pdo = DB::pdo();
-    
-    // Articles for review
-    $pendingArticles = Article::getForReview(50, 0);
-    $assignedArticles = Article::getAssignedToReviewer(1, 50, 0); // Admin user ID 1
-    
-    // Role requests
-    $roleRequests = $pdo->query('
-        SELECT ura.id, ura.user_id, ura.status, ura.requested_at, ura.reviewed_at, ura.notes,
-               u.full_name, u.email, ur.name as role_name, ur.description as role_description
-        FROM user_role_assignments ura
-        JOIN users u ON ura.user_id = u.id
-        JOIN user_roles ur ON ura.role_id = ur.id
-        WHERE ura.status = "pending"
-        ORDER BY ura.requested_at DESC
-    ')->fetchAll();
-    
-    // Jobs
-    $jobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 10')->fetchAll();
-    
-    // Migration data
-    $pendingMigrations = $migrationRunner->getPendingMigrations();
-    $migrationHistory = $migrationRunner->getMigrationHistory();
-    
-    // Stats
-    $stats = [
-        'total_users' => (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(),
-        'total_articles' => (int)$pdo->query('SELECT COUNT(*) FROM articles')->fetchColumn(),
-        'pending_reviews' => count($pendingArticles),
-        'total_jobs' => (int)$pdo->query('SELECT COUNT(*) FROM jobs WHERE is_active = 1')->fetchColumn(),
-        'pending_migrations' => count($pendingMigrations),
-    ];
-    
+    $jobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 50')->fetchAll();
 } catch (\Throwable $e) {
-    $stats = ['total_users' => 0, 'total_articles' => 0, 'pending_reviews' => 0, 'total_jobs' => 0, 'pending_migrations' => 0];
-    $pendingArticles = [];
-    $assignedArticles = [];
-    $roleRequests = [];
     $jobs = [];
-    $pendingMigrations = [];
-    $migrationHistory = [];
 }
 ?>
 <!DOCTYPE html>
@@ -83,7 +70,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Varsity Resource Centre</title>
+    <title>Job Management - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -120,11 +107,6 @@ try {
         .card:hover { transform: translateY(-5px); }
         .text-muted { color: var(--dash-muted) !important; }
         .btn-theme { border: 1px solid var(--dash-border); color: var(--dash-text); }
-        .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .stats-card .card-body { padding: 2rem; }
         .admin-badge {
             background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
             color: white;
@@ -160,7 +142,7 @@ try {
                     
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="dashboard.php">
+                            <a class="nav-link" href="dashboard.php">
                                 <i class="bi bi-speedometer2"></i>
                                 <span class="ms-2">Dashboard</span>
                             </a>
@@ -178,7 +160,7 @@ try {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="jobs.php">
+                            <a class="nav-link active" href="jobs.php">
                                 <i class="bi bi-briefcase"></i>
                                 <span class="ms-2">Job Management</span>
                             </a>
@@ -215,8 +197,8 @@ try {
                 <div class="p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="mb-1">Admin Dashboard</h2>
-                            <p class="text-muted">Manage your Varsity Resource Centre</p>
+                            <h2 class="mb-1">Job Management</h2>
+                            <p class="text-muted">Post and manage job listings</p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="admin-badge">Administrator</span>
@@ -240,92 +222,85 @@ try {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Stats Cards -->
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-people fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_users'] ?></h3>
-                                    <p class="mb-0">Total Users</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-file-text fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_articles'] ?></h3>
-                                    <p class="mb-0">Total Articles</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-clock fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['pending_reviews'] ?></h3>
-                                    <p class="mb-0">Pending Reviews</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-briefcase fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_jobs'] ?></h3>
-                                    <p class="mb-0">Active Jobs</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
                     <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <div class="card">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
                                 <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+                                    <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Post New Job</h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="d-grid gap-2">
-                                        <a href="review.php" class="btn btn-primary">
-                                            <i class="bi bi-check-circle me-2"></i>Review Articles (<?= count($pendingArticles) ?> pending)
-                                        </a>
-                                        <a href="users.php" class="btn btn-outline-primary">
-                                            <i class="bi bi-people me-2"></i>Manage Role Requests (<?= count($roleRequests) ?> pending)
-                                        </a>
-                                        <a href="jobs.php" class="btn btn-outline-success">
-                                            <i class="bi bi-briefcase me-2"></i>Post New Job
-                                        </a>
-                                        <a href="migrations.php" class="btn btn-outline-warning">
-                                            <i class="bi bi-database-gear me-2"></i>Run Migrations (<?= $stats['pending_migrations'] ?> pending)
-                                        </a>
-                                    </div>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                        <input type="hidden" name="action" value="job_create">
+                                        <div class="mb-3">
+                                            <label class="form-label">Job Title</label>
+                                            <input name="job_title" class="form-control" placeholder="e.g. Graduate Trainee - IT" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Company</label>
+                                            <input name="job_company" class="form-control" placeholder="e.g. Econet" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Location</label>
+                                            <input name="job_location" class="form-control" placeholder="Harare / Remote" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Description</label>
+                                            <textarea name="job_description" class="form-control" rows="3" placeholder="Job description..."></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Job URL</label>
+                                            <input name="job_url" class="form-control" placeholder="https://..." type="url">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Expiry Date</label>
+                                            <input name="job_expires_at" class="form-control" type="datetime-local">
+                                        </div>
+                                        <button class="btn btn-primary" type="submit">Post Job</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-4">
+                        <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
+                                    <h5 class="mb-0"><i class="bi bi-briefcase me-2"></i>Recent Jobs</h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="list-group list-group-flush">
-                                        <?php if (!empty($pendingArticles)): ?>
-                                            <?php foreach (array_slice($pendingArticles, 0, 3) as $article): ?>
+                                    <?php if (empty($jobs)): ?>
+                                        <p class="text-muted">No jobs posted yet.</p>
+                                    <?php else: ?>
+                                        <div class="list-group list-group-flush">
+                                            <?php foreach ($jobs as $job): ?>
                                                 <div class="list-group-item px-0">
-                                                    <small class="text-muted">New article for review</small>
-                                                    <div class="fw-bold"><?= htmlspecialchars($article['title']) ?></div>
-                                                    <small class="text-muted">by <?= htmlspecialchars($article['author_name']) ?></small>
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <h6 class="mb-1"><?= htmlspecialchars($job['title']) ?></h6>
+                                                            <p class="mb-1 text-muted"><?= htmlspecialchars($job['company_name']) ?> - <?= htmlspecialchars($job['location']) ?></p>
+                                                            <small class="text-muted"><?= date('M j, Y', strtotime($job['created_at'])) ?></small>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge <?= $job['is_active'] ? 'bg-success' : 'bg-secondary' ?>"><?= $job['is_active'] ? 'Active' : 'Inactive' ?></span>
+                                                            <div class="btn-group btn-group-sm mt-1">
+                                                                <form method="post" class="d-inline">
+                                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                                    <input type="hidden" name="action" value="job_toggle">
+                                                                    <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+                                                                    <button class="btn btn-outline-secondary">Toggle</button>
+                                                                </form>
+                                                                <form method="post" class="d-inline" onsubmit="return confirm('Delete this job?')">
+                                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                                    <input type="hidden" name="action" value="job_delete">
+                                                                    <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+                                                                    <button class="btn btn-outline-danger">Delete</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             <?php endforeach; ?>
-                                        <?php else: ?>
-                                            <div class="list-group-item px-0">
-                                                <small class="text-muted">No recent activity</small>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

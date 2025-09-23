@@ -5,9 +5,7 @@ require_once __DIR__ . '/../bootstrap.php';
 use Auth\Auth;
 use Content\Article;
 use Database\DB;
-use Database\MigrationRunner;
 use Security\Csrf;
-use Config\Settings;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
@@ -16,24 +14,53 @@ $user = $auth->user();
 $successMessage = '';
 $errorMessage = '';
 
-// Load settings
-$settings = new Settings(__DIR__ . '/../storage/settings.json');
-$data = $settings->all();
+// Handle admin actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    $csrf = $_POST['csrf_token'] ?? '';
+    
+    if (!Csrf::validate($csrf)) {
+        $errorMessage = 'Invalid request token.';
+    } else {
+        try {
+            // Article review actions
+            if ($action === 'article_assign') {
+                $articleId = (int)($_POST['article_id'] ?? 0);
+                $article = Article::findById($articleId);
+                if (!$article) {
+                    throw new \RuntimeException('Article not found.');
+                }
+                // Create a mock admin user ID for now - in real implementation you'd have admin user management
+                $adminUserId = 1; 
+                if (!$article->assignToReviewer($adminUserId)) {
+                    throw new \RuntimeException('Failed to assign article for review.');
+                }
+                $successMessage = 'Article assigned for review.';
+                
+            } elseif ($action === 'article_approve' || $action === 'article_reject') {
+                $articleId = (int)($_POST['article_id'] ?? 0);
+                $notes = trim($_POST['notes'] ?? '');
+                $article = Article::findById($articleId);
+                if (!$article) {
+                    throw new \RuntimeException('Article not found.');
+                }
+                $adminUserId = 1;
+                $ok = $action === 'article_approve'
+                    ? $article->approve($adminUserId, $notes)
+                    : $article->reject($adminUserId, $notes);
+                if (!$ok) {
+                    throw new \RuntimeException('Failed to process review action.');
+                }
+                $successMessage = $action === 'article_approve' ? 'Article approved and published.' : 'Article rejected.';
+            }
+            
+        } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
+        }
+    }
+}
 
-// Initialize migration runner
-$migrationRunner = new MigrationRunner();
-
-// Feature flags
-$siteConfig = is_file(__DIR__ . '/../storage/app.php') ? (include __DIR__ . '/../storage/app.php') : [];
-$features = $siteConfig['features'] ?? [
-    'articles' => true,
-    'houses' => true,
-    'businesses' => true,
-    'news' => true,
-    'jobs' => true,
-];
-
-// Get data for dashboard
+// Get data for review page
 try {
     $pdo = DB::pdo();
     
@@ -41,41 +68,9 @@ try {
     $pendingArticles = Article::getForReview(50, 0);
     $assignedArticles = Article::getAssignedToReviewer(1, 50, 0); // Admin user ID 1
     
-    // Role requests
-    $roleRequests = $pdo->query('
-        SELECT ura.id, ura.user_id, ura.status, ura.requested_at, ura.reviewed_at, ura.notes,
-               u.full_name, u.email, ur.name as role_name, ur.description as role_description
-        FROM user_role_assignments ura
-        JOIN users u ON ura.user_id = u.id
-        JOIN user_roles ur ON ura.role_id = ur.id
-        WHERE ura.status = "pending"
-        ORDER BY ura.requested_at DESC
-    ')->fetchAll();
-    
-    // Jobs
-    $jobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 10')->fetchAll();
-    
-    // Migration data
-    $pendingMigrations = $migrationRunner->getPendingMigrations();
-    $migrationHistory = $migrationRunner->getMigrationHistory();
-    
-    // Stats
-    $stats = [
-        'total_users' => (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(),
-        'total_articles' => (int)$pdo->query('SELECT COUNT(*) FROM articles')->fetchColumn(),
-        'pending_reviews' => count($pendingArticles),
-        'total_jobs' => (int)$pdo->query('SELECT COUNT(*) FROM jobs WHERE is_active = 1')->fetchColumn(),
-        'pending_migrations' => count($pendingMigrations),
-    ];
-    
 } catch (\Throwable $e) {
-    $stats = ['total_users' => 0, 'total_articles' => 0, 'pending_reviews' => 0, 'total_jobs' => 0, 'pending_migrations' => 0];
     $pendingArticles = [];
     $assignedArticles = [];
-    $roleRequests = [];
-    $jobs = [];
-    $pendingMigrations = [];
-    $migrationHistory = [];
 }
 ?>
 <!DOCTYPE html>
@@ -83,7 +78,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Varsity Resource Centre</title>
+    <title>Article Review - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -120,11 +115,6 @@ try {
         .card:hover { transform: translateY(-5px); }
         .text-muted { color: var(--dash-muted) !important; }
         .btn-theme { border: 1px solid var(--dash-border); color: var(--dash-text); }
-        .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .stats-card .card-body { padding: 2rem; }
         .admin-badge {
             background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
             color: white;
@@ -160,13 +150,13 @@ try {
                     
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="dashboard.php">
+                            <a class="nav-link" href="dashboard.php">
                                 <i class="bi bi-speedometer2"></i>
                                 <span class="ms-2">Dashboard</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="review.php">
+                            <a class="nav-link active" href="review.php">
                                 <i class="bi bi-check-circle"></i>
                                 <span class="ms-2">Review Articles</span>
                             </a>
@@ -215,8 +205,8 @@ try {
                 <div class="p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="mb-1">Admin Dashboard</h2>
-                            <p class="text-muted">Manage your Varsity Resource Centre</p>
+                            <h2 class="mb-1">Article Review</h2>
+                            <p class="text-muted">Review and approve articles for publication</p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="admin-badge">Administrator</span>
@@ -240,94 +230,105 @@ try {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Stats Cards -->
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-people fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_users'] ?></h3>
-                                    <p class="mb-0">Total Users</p>
-                                </div>
-                            </div>
+                    <?php
+                        $csrfToken = Csrf::issueToken();
+                    ?>
+                    
+                    <!-- Assigned Articles -->
+                    <?php if (!empty($assignedArticles)): ?>
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-person-check me-2"></i>Your Assigned Articles</h5>
+                            <span class="badge bg-primary"><?= count($assignedArticles) ?> assigned</span>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-file-text fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_articles'] ?></h3>
-                                    <p class="mb-0">Total Articles</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-clock fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['pending_reviews'] ?></h3>
-                                    <p class="mb-0">Pending Reviews</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-briefcase fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_jobs'] ?></h3>
-                                    <p class="mb-0">Active Jobs</p>
-                                </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Author</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($assignedArticles as $a): ?>
+                                            <tr>
+                                                <td class="text-truncate" style="max-width:320px;" title="<?= htmlspecialchars($a['title']) ?>"><?= htmlspecialchars($a['title']) ?></td>
+                                                <td><?= htmlspecialchars($a['author_name'] ?? 'Author') ?></td>
+                                                <td class="d-flex gap-2">
+                                                    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#assigned-<?= (int)$a['id'] ?>">Review</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="collapse" id="assigned-<?= (int)$a['id'] ?>">
+                                                <td colspan="3">
+                                                    <div class="mb-2">
+                                                        <div class="fw-semibold mb-1">Content</div>
+                                                        <div class="border rounded p-2" style="white-space: pre-wrap;"><?= nl2br(htmlspecialchars($a['content'])) ?></div>
+                                                    </div>
+                                                    <form method="post" class="d-flex gap-2">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                        <input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+                                                        <input name="notes" class="form-control" placeholder="Review notes (optional)">
+                                                        <button name="action" value="article_reject" class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                                                        <button name="action" value="article_approve" class="btn btn-sm btn-success" type="submit">Approve & Publish</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
-                    <!-- Quick Actions -->
-                    <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="d-grid gap-2">
-                                        <a href="review.php" class="btn btn-primary">
-                                            <i class="bi bi-check-circle me-2"></i>Review Articles (<?= count($pendingArticles) ?> pending)
-                                        </a>
-                                        <a href="users.php" class="btn btn-outline-primary">
-                                            <i class="bi bi-people me-2"></i>Manage Role Requests (<?= count($roleRequests) ?> pending)
-                                        </a>
-                                        <a href="jobs.php" class="btn btn-outline-success">
-                                            <i class="bi bi-briefcase me-2"></i>Post New Job
-                                        </a>
-                                        <a href="migrations.php" class="btn btn-outline-warning">
-                                            <i class="bi bi-database-gear me-2"></i>Run Migrations (<?= $stats['pending_migrations'] ?> pending)
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
+                    <!-- Available Articles -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-inbox me-2"></i>Articles Awaiting Review</h5>
+                            <span class="badge bg-warning"><?= count($pendingArticles) ?> pending</span>
                         </div>
-                        <div class="col-md-6 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="list-group list-group-flush">
-                                        <?php if (!empty($pendingArticles)): ?>
-                                            <?php foreach (array_slice($pendingArticles, 0, 3) as $article): ?>
-                                                <div class="list-group-item px-0">
-                                                    <small class="text-muted">New article for review</small>
-                                                    <div class="fw-bold"><?= htmlspecialchars($article['title']) ?></div>
-                                                    <small class="text-muted">by <?= htmlspecialchars($article['author_name']) ?></small>
-                                                </div>
+                        <div class="card-body">
+                            <?php if (empty($pendingArticles)): ?>
+                                <p class="text-muted mb-0">No articles awaiting review.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Title</th>
+                                                <th>Author</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($pendingArticles as $p): ?>
+                                                <tr>
+                                                    <td class="text-truncate" style="max-width:320px;" title="<?= htmlspecialchars($p['title']) ?>"><?= htmlspecialchars($p['title']) ?></td>
+                                                    <td><?= htmlspecialchars($p['author_name'] ?? 'Author') ?></td>
+                                                    <td class="d-flex gap-2">
+                                                        <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#preview-<?= (int)$p['id'] ?>">Preview</button>
+                                                        <form method="post" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                            <input type="hidden" name="article_id" value="<?= (int)$p['id'] ?>">
+                                                            <button name="action" value="article_assign" class="btn btn-sm btn-primary" type="submit">Take for Review</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                                <tr class="collapse" id="preview-<?= (int)$p['id'] ?>">
+                                                    <td colspan="3">
+                                                        <div class="mb-2">
+                                                            <div class="fw-semibold mb-1">Content Preview</div>
+                                                            <div class="border rounded p-2" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto;"><?= nl2br(htmlspecialchars($p['content'])) ?></div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             <?php endforeach; ?>
-                                        <?php else: ?>
-                                            <div class="list-group-item px-0">
-                                                <small class="text-muted">No recent activity</small>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

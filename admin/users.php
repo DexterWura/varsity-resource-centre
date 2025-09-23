@@ -3,11 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
 use Auth\Auth;
-use Content\Article;
 use Database\DB;
-use Database\MigrationRunner;
 use Security\Csrf;
-use Config\Settings;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
@@ -16,32 +13,39 @@ $user = $auth->user();
 $successMessage = '';
 $errorMessage = '';
 
-// Load settings
-$settings = new Settings(__DIR__ . '/../storage/settings.json');
-$data = $settings->all();
+// Handle admin actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    $csrf = $_POST['csrf_token'] ?? '';
+    
+    if (!Csrf::validate($csrf)) {
+        $errorMessage = 'Invalid request token.';
+    } else {
+        try {
+            // Role management
+            if ($action === 'approve_role') {
+                $pdo = DB::pdo();
+                $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "approved", reviewed_at = NOW(), granted_by = 1 WHERE id = ?');
+                $stmt->execute([(int)$_POST['role_id']]);
+                $successMessage = 'Role request approved.';
+                
+            } elseif ($action === 'reject_role') {
+                $pdo = DB::pdo();
+                $notes = trim($_POST['reject_notes'] ?? '');
+                $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "rejected", reviewed_at = NOW(), granted_by = 1, notes = ? WHERE id = ?');
+                $stmt->execute([$notes, (int)$_POST['role_id']]);
+                $successMessage = 'Role request rejected.';
+            }
+            
+        } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
+        }
+    }
+}
 
-// Initialize migration runner
-$migrationRunner = new MigrationRunner();
-
-// Feature flags
-$siteConfig = is_file(__DIR__ . '/../storage/app.php') ? (include __DIR__ . '/../storage/app.php') : [];
-$features = $siteConfig['features'] ?? [
-    'articles' => true,
-    'houses' => true,
-    'businesses' => true,
-    'news' => true,
-    'jobs' => true,
-];
-
-// Get data for dashboard
+// Get role requests
 try {
     $pdo = DB::pdo();
-    
-    // Articles for review
-    $pendingArticles = Article::getForReview(50, 0);
-    $assignedArticles = Article::getAssignedToReviewer(1, 50, 0); // Admin user ID 1
-    
-    // Role requests
     $roleRequests = $pdo->query('
         SELECT ura.id, ura.user_id, ura.status, ura.requested_at, ura.reviewed_at, ura.notes,
                u.full_name, u.email, ur.name as role_name, ur.description as role_description
@@ -51,31 +55,8 @@ try {
         WHERE ura.status = "pending"
         ORDER BY ura.requested_at DESC
     ')->fetchAll();
-    
-    // Jobs
-    $jobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 10')->fetchAll();
-    
-    // Migration data
-    $pendingMigrations = $migrationRunner->getPendingMigrations();
-    $migrationHistory = $migrationRunner->getMigrationHistory();
-    
-    // Stats
-    $stats = [
-        'total_users' => (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn(),
-        'total_articles' => (int)$pdo->query('SELECT COUNT(*) FROM articles')->fetchColumn(),
-        'pending_reviews' => count($pendingArticles),
-        'total_jobs' => (int)$pdo->query('SELECT COUNT(*) FROM jobs WHERE is_active = 1')->fetchColumn(),
-        'pending_migrations' => count($pendingMigrations),
-    ];
-    
 } catch (\Throwable $e) {
-    $stats = ['total_users' => 0, 'total_articles' => 0, 'pending_reviews' => 0, 'total_jobs' => 0, 'pending_migrations' => 0];
-    $pendingArticles = [];
-    $assignedArticles = [];
     $roleRequests = [];
-    $jobs = [];
-    $pendingMigrations = [];
-    $migrationHistory = [];
 }
 ?>
 <!DOCTYPE html>
@@ -83,7 +64,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Varsity Resource Centre</title>
+    <title>User Management - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -120,11 +101,6 @@ try {
         .card:hover { transform: translateY(-5px); }
         .text-muted { color: var(--dash-muted) !important; }
         .btn-theme { border: 1px solid var(--dash-border); color: var(--dash-text); }
-        .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .stats-card .card-body { padding: 2rem; }
         .admin-badge {
             background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
             color: white;
@@ -160,7 +136,7 @@ try {
                     
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="dashboard.php">
+                            <a class="nav-link" href="dashboard.php">
                                 <i class="bi bi-speedometer2"></i>
                                 <span class="ms-2">Dashboard</span>
                             </a>
@@ -172,7 +148,7 @@ try {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="users.php">
+                            <a class="nav-link active" href="users.php">
                                 <i class="bi bi-people"></i>
                                 <span class="ms-2">User Management</span>
                             </a>
@@ -215,8 +191,8 @@ try {
                 <div class="p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="mb-1">Admin Dashboard</h2>
-                            <p class="text-muted">Manage your Varsity Resource Centre</p>
+                            <h2 class="mb-1">User Management</h2>
+                            <p class="text-muted">Manage user role requests and permissions</p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="admin-badge">Administrator</span>
@@ -240,94 +216,80 @@ try {
                         </div>
                     <?php endif; ?>
 
-                    <!-- Stats Cards -->
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-people fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_users'] ?></h3>
-                                    <p class="mb-0">Total Users</p>
-                                </div>
-                            </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Role Requests</h5>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-file-text fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_articles'] ?></h3>
-                                    <p class="mb-0">Total Articles</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-clock fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['pending_reviews'] ?></h3>
-                                    <p class="mb-0">Pending Reviews</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-briefcase fs-1 mb-2"></i>
-                                    <h3 class="mb-1"><?= $stats['total_jobs'] ?></h3>
-                                    <p class="mb-0">Active Jobs</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="d-grid gap-2">
-                                        <a href="review.php" class="btn btn-primary">
-                                            <i class="bi bi-check-circle me-2"></i>Review Articles (<?= count($pendingArticles) ?> pending)
-                                        </a>
-                                        <a href="users.php" class="btn btn-outline-primary">
-                                            <i class="bi bi-people me-2"></i>Manage Role Requests (<?= count($roleRequests) ?> pending)
-                                        </a>
-                                        <a href="jobs.php" class="btn btn-outline-success">
-                                            <i class="bi bi-briefcase me-2"></i>Post New Job
-                                        </a>
-                                        <a href="migrations.php" class="btn btn-outline-warning">
-                                            <i class="bi bi-database-gear me-2"></i>Run Migrations (<?= $stats['pending_migrations'] ?> pending)
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="list-group list-group-flush">
-                                        <?php if (!empty($pendingArticles)): ?>
-                                            <?php foreach (array_slice($pendingArticles, 0, 3) as $article): ?>
-                                                <div class="list-group-item px-0">
-                                                    <small class="text-muted">New article for review</small>
-                                                    <div class="fw-bold"><?= htmlspecialchars($article['title']) ?></div>
-                                                    <small class="text-muted">by <?= htmlspecialchars($article['author_name']) ?></small>
-                                                </div>
+                        <div class="card-body">
+                            <?php if (empty($roleRequests)): ?>
+                                <p class="text-muted mb-0">No pending role requests.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Email</th>
+                                                <th>Requested Role</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($roleRequests as $request): ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars($request['full_name']) ?></td>
+                                                    <td><?= htmlspecialchars($request['email']) ?></td>
+                                                    <td>
+                                                        <span class="badge bg-primary"><?= htmlspecialchars($request['role_name']) ?></span>
+                                                        <br><small class="text-muted"><?= htmlspecialchars($request['role_description']) ?></small>
+                                                    </td>
+                                                    <td><?= date('M j, Y', strtotime($request['requested_at'])) ?></td>
+                                                    <td>
+                                                        <form method="post" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                            <input type="hidden" name="role_id" value="<?= $request['id'] ?>">
+                                                            <button name="action" value="approve_role" class="btn btn-sm btn-success me-1" onclick="return confirm('Approve this role request?')">
+                                                                <i class="bi bi-check"></i> Approve
+                                                            </button>
+                                                        </form>
+                                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal<?= $request['id'] ?>">
+                                                            <i class="bi bi-x"></i> Reject
+                                                        </button>
+                                                        
+                                                        <!-- Reject Modal -->
+                                                        <div class="modal fade" id="rejectModal<?= $request['id'] ?>" tabindex="-1">
+                                                            <div class="modal-dialog">
+                                                                <div class="modal-content">
+                                                                    <form method="post">
+                                                                        <div class="modal-header">
+                                                                            <h5 class="modal-title">Reject Role Request</h5>
+                                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                        </div>
+                                                                        <div class="modal-body">
+                                                                            <p>Rejecting role request for <strong><?= htmlspecialchars($request['full_name']) ?></strong></p>
+                                                                            <div class="mb-3">
+                                                                                <label class="form-label">Reason for rejection:</label>
+                                                                                <textarea class="form-control" name="reject_notes" rows="3" placeholder="Provide feedback..."></textarea>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="modal-footer">
+                                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                                            <input type="hidden" name="role_id" value="<?= $request['id'] ?>">
+                                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                            <button name="action" value="reject_role" class="btn btn-danger">Reject Request</button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             <?php endforeach; ?>
-                                        <?php else: ?>
-                                            <div class="list-group-item px-0">
-                                                <small class="text-muted">No recent activity</small>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
