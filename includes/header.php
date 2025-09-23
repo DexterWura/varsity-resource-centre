@@ -176,6 +176,7 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 									<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
 								</a>
 							</li>
+							<?php if (($siteConfig['features']['plagiarism_checker'] ?? false)): ?>
 							<li><hr class="dropdown-divider"></li>
 							<li>
 								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
@@ -183,6 +184,7 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 									<span class="badge bg-warning text-dark ms-2">Pro</span>
 								</a>
 							</li>
+							<?php endif; ?>
 						</ul>
 					</li>
 					

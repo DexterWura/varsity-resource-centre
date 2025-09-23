@@ -15,4 +15,4 @@ CREATE TABLE IF NOT EXISTS user_roles (
 INSERT IGNORE INTO user_roles (user_id, role_id) 
 SELECT u.id, r.id 
 FROM users u, roles r 
-WHERE u.email = 'admin@varsityresource.com' AND r.name = 'admin';
+WHERE u.email = 'admin@example.com' AND r.name = 'admin';
