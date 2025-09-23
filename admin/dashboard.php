@@ -195,6 +195,12 @@ try {
                                 <span class="ms-2">Migrations</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="semantic-scholar.php">
+                                <i class="bi bi-search"></i>
+                                <span class="ms-2">Academic Search</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 
@@ -298,9 +304,12 @@ try {
                                         <a href="jobs.php" class="btn btn-outline-success">
                                             <i class="bi bi-briefcase me-2"></i>Post New Job
                                         </a>
-                                        <a href="migrations.php" class="btn btn-outline-warning">
-                                            <i class="bi bi-database-gear me-2"></i>Run Migrations (<?= $stats['pending_migrations'] ?> pending)
-                                        </a>
+                                            <a href="migrations.php" class="btn btn-outline-warning">
+                                                <i class="bi bi-database-gear me-2"></i>Run Migrations (<?= $stats['pending_migrations'] ?> pending)
+                                            </a>
+                                            <a href="semantic-scholar.php" class="btn btn-outline-info">
+                                                <i class="bi bi-search me-2"></i>Search Academic Papers
+                                            </a>
                                     </div>
                                 </div>
                             </div>

@@ -185,6 +185,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <span class="ms-2">Migrations</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="semantic-scholar.php">
+                                <i class="bi bi-search"></i>
+                                <span class="ms-2">Academic Search</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 
