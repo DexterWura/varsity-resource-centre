@@ -130,12 +130,10 @@ CREATE TABLE IF NOT EXISTS businesses (
   INDEX idx_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Insert default roles
-INSERT INTO user_roles (name, description, permissions) VALUES
-('user', 'Basic user with limited access', '{"read": true}'),
-('writer', 'Can write and submit articles', '{"read": true, "write_articles": true}'),
-('reviewer', 'Can review and approve articles', '{"read": true, "review_articles": true}'),
-('business_owner', 'Can post business listings', '{"read": true, "manage_business": true}'),
-('house_owner', 'Can post house rentals', '{"read": true, "manage_houses": true}'),
-('agent', 'Can post house rentals as agent', '{"read": true, "manage_houses": true, "agent_tag": true}')
-ON DUPLICATE KEY UPDATE name = name;
+-- Insert additional roles (if not already exists)
+INSERT IGNORE INTO roles (name, description, permissions) VALUES
+('writer', 'Can write and submit articles', '["read", "write_articles"]'),
+('reviewer', 'Can review and approve articles', '["read", "review_articles"]'),
+('business_owner', 'Can post business listings', '["read", "manage_business"]'),
+('house_owner', 'Can post house rentals', '["read", "manage_houses"]'),
+('agent', 'Can post house rentals as agent', '["read", "manage_houses", "agent_tag"]');
