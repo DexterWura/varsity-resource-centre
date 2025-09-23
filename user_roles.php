@@ -4,6 +4,7 @@ require_once __DIR__ . '/bootstrap.php';
 
 use Auth\UserAuth;
 use Database\DB;
+use Security\Csrf;
 
 $userAuth = new UserAuth();
 $userAuth->requireAuth();
@@ -14,9 +15,13 @@ $error = '';
 
 // Handle role request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_role'])) {
-    $roleId = (int)($_POST['role_id'] ?? 0);
-    
-    if ($roleId > 0) {
+    // Validate CSRF token
+    if (!Csrf::validate($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } else {
+        $roleId = (int)($_POST['role_id'] ?? 0);
+        
+        if ($roleId > 0) {
         try {
             $pdo = DB::pdo();
             $stmt = $pdo->prepare('
@@ -27,7 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_role'])) {
             $stmt->execute([$user->getId(), $roleId]);
             $message = 'Role request submitted successfully!';
         } catch (\Throwable $e) {
+            error_log('Role request error: ' . $e->getMessage());
             $error = 'Failed to submit role request. Please try again.';
+        }
         }
     }
 }
@@ -37,7 +44,7 @@ $currentRoles = [];
 try {
     $pdo = DB::pdo();
     $stmt = $pdo->prepare('
-        SELECT ur.name, ur.description, ura.status, ura.requested_at, ura.reviewed_at, ura.notes
+        SELECT ur.name, ur.description, ur.permissions, ura.status, ura.requested_at, ura.reviewed_at, ura.notes
         FROM user_role_assignments ura
         JOIN user_roles ur ON ura.role_id = ur.id
         WHERE ura.user_id = ?
@@ -46,6 +53,7 @@ try {
     $stmt->execute([$user->getId()]);
     $currentRoles = $stmt->fetchAll();
 } catch (\Throwable $e) {
+    error_log('Current roles query error: ' . $e->getMessage());
     $error = 'Failed to load role information.';
 }
 
@@ -64,7 +72,8 @@ try {
     $stmt->execute([$user->getId()]);
     $availableRoles = $stmt->fetchAll();
 } catch (\Throwable $e) {
-    // Handle error silently
+    error_log('Available roles query error: ' . $e->getMessage());
+    // Handle error silently for available roles
 }
 ?>
 <!DOCTYPE html>
@@ -76,6 +85,36 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        :root {
+            --dash-bg: #f8f9fb;
+            --dash-card: #ffffff;
+            --dash-text: #212529;
+            --dash-muted: #6c757d;
+            --dash-accent: #7367f0;
+            --dash-border: #e9ecef;
+            --dash-sidebar: #0f1521;
+            --dash-sidebar-text: #cfd6dd;
+            --dash-sidebar-active: #1a2335;
+        }
+        [data-theme="dark"] {
+            --dash-bg: #0f1521;
+            --dash-card: #121a2a;
+            --dash-text: #e9ecef;
+            --dash-muted: #aab1b9;
+            --dash-accent: #7367f0;
+            --dash-border: #243147;
+            --dash-sidebar: #0f1521;
+            --dash-sidebar-text: #cfd6dd;
+            --dash-sidebar-active: #1a2335;
+        }
+        body { background: var(--dash-bg); color: var(--dash-text); }
+        .sidebar { min-height: 100vh; background: var(--dash-sidebar); transition: all 0.3s ease; }
+        .sidebar .nav-link { color: var(--dash-sidebar-text); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; transition: all 0.3s ease; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: var(--dash-sidebar-active); transform: translateX(5px); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .main-content { background: var(--dash-bg); min-height: 100vh; }
+        .card { background: var(--dash-card); border: 1px solid var(--dash-border); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .text-muted { color: var(--dash-muted) !important; }
         .role-card {
             border: none;
             border-radius: 15px;
@@ -113,37 +152,6 @@ try {
             margin: 2px;
             display: inline-block;
         }
-    </style>
-        :root {
-            --dash-bg: #f8f9fb;
-            --dash-card: #ffffff;
-            --dash-text: #212529;
-            --dash-muted: #6c757d;
-            --dash-accent: #7367f0;
-            --dash-border: #e9ecef;
-            --dash-sidebar: #0f1521;
-            --dash-sidebar-text: #cfd6dd;
-            --dash-sidebar-active: #1a2335;
-        }
-        [data-theme="dark"] {
-            --dash-bg: #0f1521;
-            --dash-card: #121a2a;
-            --dash-text: #e9ecef;
-            --dash-muted: #aab1b9;
-            --dash-accent: #7367f0;
-            --dash-border: #243147;
-            --dash-sidebar: #0f1521;
-            --dash-sidebar-text: #cfd6dd;
-            --dash-sidebar-active: #1a2335;
-        }
-        body { background: var(--dash-bg); color: var(--dash-text); }
-        .sidebar { min-height: 100vh; background: var(--dash-sidebar); transition: all 0.3s ease; }
-        .sidebar .nav-link { color: var(--dash-sidebar-text); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; transition: all 0.3s ease; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: var(--dash-sidebar-active); transform: translateX(5px); }
-        .sidebar .nav-link i { width: 20px; text-align: center; }
-        .main-content { background: var(--dash-bg); min-height: 100vh; }
-        .card { background: var(--dash-card); border: 1px solid var(--dash-border); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
-        .text-muted { color: var(--dash-muted) !important; }
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -315,6 +323,7 @@ try {
 
                                                 <form method="POST" class="d-inline">
                                                     <input type="hidden" name="role_id" value="<?= $role['id'] ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
                                                     <button type="submit" name="request_role" class="btn btn-primary btn-sm">
                                                         <i class="bi bi-send me-1"></i>Request Role
                                                     </button>
@@ -348,9 +357,26 @@ try {
         document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('show');
         });
-        if (window.innerWidth <= 768) {
-            document.getElementById('sidebar').classList.add('collapsed');
-        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                document.getElementById('sidebar').classList.remove('show');
+            }
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !sidebarToggle.contains(event.target) && 
+                sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
+        });
         document.getElementById('dashThemeToggle')?.addEventListener('click', function(){
             var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
