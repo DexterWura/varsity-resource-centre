@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Content;
 
 use Database\DB;
+use Media\ImageManager;
 
 class Article
 {
@@ -447,5 +448,53 @@ class Article
     public function toArray(): array
     {
         return $this->article;
+    }
+
+    // Image-related methods
+    public function getFeaturedImage(): ?array
+    {
+        $imageManager = new ImageManager();
+        return $imageManager->getFeaturedImage('article', $this->getId());
+    }
+
+    public function getGalleryImages(): array
+    {
+        $imageManager = new ImageManager();
+        return $imageManager->getGalleryImages('article', $this->getId());
+    }
+
+    public function getAllImages(): array
+    {
+        $imageManager = new ImageManager();
+        return $imageManager->getImages('article', $this->getId());
+    }
+
+    public function addImage(array $file, string $imageType = 'gallery'): ?array
+    {
+        $imageManager = new ImageManager();
+        return $imageManager->uploadImage($file, 'article', $this->getId(), $imageType);
+    }
+
+    public function setFeaturedImage(int $imageId): bool
+    {
+        $imageManager = new ImageManager();
+        return $imageManager->setFeaturedImage('article', $this->getId(), $imageId);
+    }
+
+    public function deleteImage(int $imageId): bool
+    {
+        $imageManager = new ImageManager();
+        return $imageManager->deleteImage($imageId);
+    }
+
+    public function getFeaturedImageUrl(): ?string
+    {
+        $featuredImage = $this->getFeaturedImage();
+        return $featuredImage ? $featuredImage['image_url'] : null;
+    }
+
+    public function hasImages(): bool
+    {
+        return !empty($this->getAllImages());
     }
 }
