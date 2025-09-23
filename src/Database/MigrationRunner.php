@@ -45,6 +45,33 @@ class MigrationRunner
         return $files;
     }
 
+    public function getAllMigrations(): array
+    {
+        $allFiles = $this->getMigrationFiles();
+        $executed = $this->getExecutedMigrations();
+        
+        $migrations = [];
+        foreach ($allFiles as $file) {
+            $version = $this->extractVersionFromFilename(basename($file));
+            $isExecuted = in_array($version, $executed);
+            
+            $migrations[] = [
+                'file' => $file,
+                'version' => $version,
+                'description' => $this->extractDescriptionFromFilename(basename($file)),
+                'type' => 'SQL',
+                'checksum' => crc32(file_get_contents($file)),
+                'script' => file_get_contents($file),
+                'size' => filesize($file),
+                'modified' => date('Y-m-d H:i:s', filemtime($file)),
+                'executed' => $isExecuted,
+                'status' => $isExecuted ? 'executed' : 'pending'
+            ];
+        }
+        
+        return $migrations;
+    }
+
     public function getExecutedMigrations(): array
     {
         $stmt = $this->pdo->prepare("SELECT version FROM {$this->migrationTable} WHERE success = 1 ORDER BY installed_rank");
@@ -64,7 +91,12 @@ class MigrationRunner
                 $pending[] = [
                     'file' => $file,
                     'version' => $version,
-                    'description' => $this->extractDescriptionFromFilename(basename($file))
+                    'description' => $this->extractDescriptionFromFilename(basename($file)),
+                    'type' => 'SQL',
+                    'checksum' => crc32(file_get_contents($file)),
+                    'script' => file_get_contents($file),
+                    'size' => filesize($file),
+                    'modified' => date('Y-m-d H:i:s', filemtime($file))
                 ];
             }
         }
@@ -228,6 +260,40 @@ class MigrationRunner
         }
         
         return $results;
+    }
+
+    public function runMigrationByVersion(string $version): array
+    {
+        $allMigrations = $this->getAllMigrations();
+        
+        foreach ($allMigrations as $migration) {
+            if ($migration['version'] === $version) {
+                if ($migration['executed']) {
+                    return [
+                        'success' => false,
+                        'error' => "Migration V{$version} has already been executed",
+                        'version' => $version,
+                        'description' => $migration['description']
+                    ];
+                }
+                
+                $result = $this->runMigration($migration['file']);
+                return [
+                    'version' => $migration['version'],
+                    'description' => $migration['description'],
+                    'file' => basename($migration['file']),
+                    'success' => $result['success'],
+                    'error' => $result['error'],
+                    'execution_time' => $result['execution_time']
+                ];
+            }
+        }
+        
+        return [
+            'success' => false,
+            'error' => "Migration V{$version} not found",
+            'version' => $version
+        ];
     }
 
     public function getMigrationHistory(): array

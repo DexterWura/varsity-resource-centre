@@ -1,0 +1,32 @@
+<?php
+// This is a template file for fresh installations
+// The installer will copy this and modify it with user settings
+return [
+    'installed' => false, // Will be set to true after successful installation
+    'db' => [
+        'host' => 'localhost',
+        'name' => 'varsity_resource_centre',
+        'user' => 'root',
+        'pass' => ''
+    ],
+    'site_name' => 'Varsity Resource Centre',
+    'theme' => [
+        'primary' => '#0d6efd'
+    ],
+    'features' => [
+        'articles' => true,
+        'houses' => true,
+        'businesses' => true,
+        'news' => true,
+        'jobs' => true,
+        'timetable' => true,
+        'plagiarism_checker' => false, // Disabled by default, admin can enable
+    ],
+    'plagiarism_apis' => [
+        'copyleaks' => false,
+        'quetext' => false,
+        'smallseotools' => false,
+        'plagiarism_detector' => false,
+        'duplichecker' => false,
+    ]
+];

@@ -49,12 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sql = preg_replace('/^\s*USE\s+[^;]+;\s*/im', '', $sql);
                 $pdo->exec($sql);
             }
-            $config->setMany([
-                'installed' => true,
-                'db' => ['host' => $host, 'name' => $name, 'user' => $user, 'pass' => $pass],
-                'site_name' => $site,
-                'theme' => ['primary' => $primary],
-            ]);
+            // Load template and update with user settings
+            $templateFile = __DIR__ . '/../storage/app.php.template';
+            $configData = include $templateFile;
+            
+            $configData['installed'] = true;
+            $configData['db'] = ['host' => $host, 'name' => $name, 'user' => $user, 'pass' => $pass];
+            $configData['site_name'] = $site;
+            $configData['theme']['primary'] = $primary;
+            
+            // Update features based on user selection
+            $configData['features']['articles'] = isset($_POST['enable_articles']);
+            $configData['features']['houses'] = isset($_POST['enable_houses']);
+            $configData['features']['businesses'] = isset($_POST['enable_businesses']);
+            $configData['features']['news'] = isset($_POST['enable_news']);
+            $configData['features']['jobs'] = isset($_POST['enable_jobs']);
+            $configData['features']['timetable'] = isset($_POST['enable_timetable']);
+            $configData['features']['plagiarism_checker'] = isset($_POST['enable_plagiarism']);
+            
+            $config->setMany($configData);
             header('Location: /index.php');
             exit;
         } catch (Throwable $e) {
@@ -70,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Install Varsity Resource Centre</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <div class="container py-5" style="max-width:640px;">
@@ -96,13 +110,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="password" class="form-control" name="db_pass" placeholder="(blank if none)">
                     </div>
                 </div>
-                <div class="col-12 mt-2">
+                <div class="col-12 mt-3">
+                    <h6 class="text-primary">Site Configuration</h6>
+                </div>
+                <div class="col-12">
                     <label class="form-label">Site Name</label>
-                    <input class="form-control" name="site_name" placeholder="Varsity Resource Centre">
+                    <input class="form-control" name="site_name" placeholder="Varsity Resource Centre" value="Varsity Resource Centre">
                 </div>
                 <div class="col-12">
                     <label class="form-label">Theme Primary Color</label>
                     <input type="color" class="form-control form-control-color" name="theme_primary" value="#0d6efd">
+                </div>
+                
+                <div class="col-12 mt-3">
+                    <h6 class="text-primary">Feature Configuration</h6>
+                    <p class="text-muted small">You can enable/disable features after installation in the admin panel.</p>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_articles" id="enable_articles" checked>
+                        <label class="form-check-label" for="enable_articles">
+                            <i class="fa-solid fa-newspaper me-2"></i>Articles
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_houses" id="enable_houses" checked>
+                        <label class="form-check-label" for="enable_houses">
+                            <i class="fa-solid fa-home me-2"></i>Houses
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_businesses" id="enable_businesses" checked>
+                        <label class="form-check-label" for="enable_businesses">
+                            <i class="fa-solid fa-store me-2"></i>Businesses
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_news" id="enable_news" checked>
+                        <label class="form-check-label" for="enable_news">
+                            <i class="fa-solid fa-newspaper me-2"></i>News
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_jobs" id="enable_jobs" checked>
+                        <label class="form-check-label" for="enable_jobs">
+                            <i class="fa-solid fa-briefcase me-2"></i>Jobs
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_timetable" id="enable_timetable" checked>
+                        <label class="form-check-label" for="enable_timetable">
+                            <i class="fa-solid fa-calendar-alt me-2"></i>Timetable Builder
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="enable_plagiarism" id="enable_plagiarism">
+                        <label class="form-check-label" for="enable_plagiarism">
+                            <i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
+                            <span class="badge bg-warning text-dark ms-2">Premium</span>
+                        </label>
+                    </div>
                 </div>
                 <button class="btn btn-primary mt-3" type="submit">Install</button>
             </form>

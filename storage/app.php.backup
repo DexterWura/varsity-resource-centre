@@ -1,0 +1,30 @@
+<?php
+return [
+    'installed' => true,
+    'db' => [
+        'host' => 'localhost',
+        'name' => 'varsity_resource_centre',
+        'user' => 'root',
+        'pass' => ''
+    ],
+    'site_name' => 'Varsity Resource Centre',
+    'theme' => [
+        'primary' => '#7367f0'
+    ],
+    'features' => [
+        'articles' => true,
+        'houses' => true,
+        'businesses' => true,
+        'news' => true,
+        'jobs' => true,
+        'timetable' => true,
+        'plagiarism_checker' => true,
+    ],
+    'plagiarism_apis' => [
+        'copyleaks' => false,
+        'quetext' => false,
+        'smallseotools' => false,
+        'plagiarism_detector' => false,
+        'duplichecker' => false,
+    ]
+];

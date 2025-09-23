@@ -2,14 +2,17 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 use Database\MigrationRunner;
 use Security\Csrf;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
-if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
+$userAuth = new UserAuth();
+if (!$userAuth->check() || !$userAuth->user()->hasRole('admin')) { 
+    header('Location: /admin/login.php'); 
+    exit; 
+}
 
-$user = $auth->user();
+$user = $userAuth->user();
 $successMessage = '';
 $errorMessage = '';
 $results = [];
@@ -34,6 +37,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = "Migration completed. {$successCount}/" . count($results) . " migrations successful.";
                     $successMessage = $message;
                 }
+            } elseif ($action === 'run_single_migration') {
+                $version = $_POST['version'] ?? '';
+                if ($version) {
+                    $result = $migrationRunner->runMigrationByVersion($version);
+                    if ($result['success']) {
+                        $successMessage = "Migration V{$version} executed successfully.";
+                    } else {
+                        $errorMessage = "Migration V{$version} failed: " . $result['error'];
+                    }
+                    $results = [$result];
+                } else {
+                    $errorMessage = 'No migration version specified.';
+                }
             } elseif ($action === 'validate_migrations') {
                 $issues = $migrationRunner->validateMigrations();
                 if (empty($issues)) {
@@ -49,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pendingMigrations = $migrationRunner->getPendingMigrations();
+$allMigrations = $migrationRunner->getAllMigrations();
 $migrationHistory = $migrationRunner->getMigrationHistory();
 ?>
 <!DOCTYPE html>
@@ -358,51 +375,164 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                     </div>
                     <?php endif; ?>
                     
-                    <!-- Migration Details -->
-                    <?php if (!empty($pendingMigrations)): ?>
+                    <!-- All Migrations -->
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Migration Details</h5>
+                            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>All Migrations</h5>
                         </div>
                         <div class="card-body">
-                            <div class="accordion" id="migrationAccordion">
-                                <?php foreach ($pendingMigrations as $index => $migration): ?>
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header" id="heading<?= $index ?>">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $index ?>">
-                                                <strong><?= htmlspecialchars($migration['version']) ?></strong>
-                                                <span class="ms-2 text-muted">- <?= htmlspecialchars($migration['description']) ?></span>
-                                            </button>
-                                        </h2>
-                                        <div id="collapse<?= $index ?>" class="accordion-collapse collapse" data-bs-parent="#migrationAccordion">
-                                            <div class="accordion-body">
-                                                <div class="row">
-                                                    <div class="col-md-6">
-                                                        <h6>Migration Info:</h6>
-                                                        <ul class="list-unstyled">
-                                                            <li><strong>Version:</strong> <?= htmlspecialchars($migration['version']) ?></li>
-                                                            <li><strong>Description:</strong> <?= htmlspecialchars($migration['description']) ?></li>
-                                                            <li><strong>Type:</strong> <?= htmlspecialchars($migration['type']) ?></li>
-                                                            <li><strong>Checksum:</strong> <code><?= htmlspecialchars($migration['checksum']) ?></code></li>
-                                                        </ul>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <h6>SQL Preview:</h6>
-                                                        <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto; font-size: 0.8rem;"><?= htmlspecialchars(substr($migration['script'], 0, 500)) ?><?= strlen($migration['script']) > 500 ? '...' : '' ?></pre>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Version</th>
+                                            <th>Description</th>
+                                            <th>Status</th>
+                                            <th>Size</th>
+                                            <th>Modified</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($allMigrations as $migration): ?>
+                                        <tr>
+                                            <td>
+                                                <code>V<?= htmlspecialchars($migration['version']) ?></code>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold"><?= htmlspecialchars($migration['description']) ?></div>
+                                                <small class="text-muted"><?= htmlspecialchars(basename($migration['file'])) ?></small>
+                                            </td>
+                                            <td>
+                                                <?php if ($migration['executed']): ?>
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle me-1"></i>Executed
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-warning">
+                                                        <i class="bi bi-clock me-1"></i>Pending
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted"><?= number_format($migration['size'] / 1024, 1) ?> KB</small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted"><?= date('M j, Y H:i', strtotime($migration['modified'])) ?></small>
+                                            </td>
+                                            <td>
+                                                <?php if (!$migration['executed']): ?>
+                                                    <form method="post" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                        <input type="hidden" name="action" value="run_single_migration">
+                                                        <input type="hidden" name="version" value="<?= htmlspecialchars($migration['version']) ?>">
+                                                        <button class="btn btn-sm btn-primary" type="submit" 
+                                                                onclick="return confirm('Run migration V<?= htmlspecialchars($migration['version']) ?>?')">
+                                                            <i class="bi bi-play-circle me-1"></i>Run
+                                                        </button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">Already executed</span>
+                                                <?php endif; ?>
+                                                
+                                                <button class="btn btn-sm btn-outline-info ms-1" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#migrationModal<?= $migration['version'] ?>">
+                                                    <i class="bi bi-eye me-1"></i>View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-                    <?php endif; ?>
                 </div>
             </main>
         </div>
     </div>
+
+    <!-- Migration Detail Modals -->
+    <?php foreach ($allMigrations as $migration): ?>
+    <div class="modal fade" id="migrationModal<?= $migration['version'] ?>" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Migration V<?= htmlspecialchars($migration['version']) ?> - <?= htmlspecialchars($migration['description']) ?>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Migration Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Version:</strong></td>
+                                    <td>V<?= htmlspecialchars($migration['version']) ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Description:</strong></td>
+                                    <td><?= htmlspecialchars($migration['description']) ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>File:</strong></td>
+                                    <td><code><?= htmlspecialchars(basename($migration['file'])) ?></code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Type:</strong></td>
+                                    <td><?= htmlspecialchars($migration['type']) ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Size:</strong></td>
+                                    <td><?= number_format($migration['size'] / 1024, 1) ?> KB</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Modified:</strong></td>
+                                    <td><?= date('M j, Y H:i:s', strtotime($migration['modified'])) ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <?php if ($migration['executed']): ?>
+                                            <span class="badge bg-success">Executed</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-warning">Pending</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Checksum:</strong></td>
+                                    <td><code><?= htmlspecialchars($migration['checksum']) ?></code></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>SQL Content</h6>
+                            <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-size: 0.8rem;"><?= htmlspecialchars($migration['script']) ?></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <?php if (!$migration['executed']): ?>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                            <input type="hidden" name="action" value="run_single_migration">
+                            <input type="hidden" name="version" value="<?= htmlspecialchars($migration['version']) ?>">
+                            <button class="btn btn-primary" type="submit" 
+                                    onclick="return confirm('Run migration V<?= htmlspecialchars($migration['version']) ?>?')">
+                                <i class="bi bi-play-circle me-1"></i>Run Migration
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
