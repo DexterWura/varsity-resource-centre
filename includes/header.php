@@ -70,34 +70,12 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script>
 	<script>
 		// Ensure dropdowns work properly
 		document.addEventListener('DOMContentLoaded', function() {
-			// Initialize all dropdowns
-			var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
-			var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
-				return new bootstrap.Dropdown(dropdownToggleEl);
-			});
-			
-			// Debug: Log if user dropdown exists
-			var userDropdown = document.getElementById('userDropdown');
-			if (userDropdown) {
-				console.log('User dropdown found and initialized');
-			} else {
-				console.log('User dropdown not found - user may not be logged in');
-			}
-			
-			// Initialize Tools dropdown specifically
-			var toolsDropdown = document.getElementById('toolsDropdown');
-			if (toolsDropdown) {
-				console.log('Tools dropdown found and initialized');
-				// Initialize Bootstrap dropdown for Tools
-				new bootstrap.Dropdown(toolsDropdown);
-			} else {
-				console.log('Tools dropdown not found');
-			}
+			// Bootstrap 5 handles dropdowns automatically, no manual initialization needed
+			console.log('Bootstrap dropdowns should work automatically');
 			
 			// Sticky Navigation Functionality
 			var navbar = document.querySelector('.navbar');
@@ -218,30 +196,11 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			border-radius: 5px;
 		}
 		
+		/* Tools dropdown styling - minimal interference with Bootstrap */
 		#toolsDropdown .dropdown-menu {
 			border: none;
 			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 			border-radius: 8px;
-			display: none;
-		}
-		
-		#toolsDropdown .dropdown-menu.show {
-			display: block;
-		}
-		
-		/* Ensure dropdown items are visible */
-		.dropdown-menu .dropdown-item {
-			display: block;
-			width: 100%;
-			padding: 0.5rem 1rem;
-			clear: both;
-			font-weight: 400;
-			color: #212529;
-			text-align: inherit;
-			text-decoration: none;
-			white-space: nowrap;
-			background-color: transparent;
-			border: 0;
 		}
 		
 		/* Smooth scroll behavior */
@@ -285,22 +244,13 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 							<i class="fa-solid fa-tools me-1"></i>Tools
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="toolsDropdown">
-							<?php if (($siteConfig['features']['timetable'] ?? true)): ?>
 							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/timetable.php">
 								<i class="fa-regular fa-calendar me-2"></i>Timetable
 							</a></li>
-							<?php endif; ?>
-							
-							<?php if (($siteConfig['features']['plagiarism_checker'] ?? false)): ?>
 							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
 								<i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
 							</a></li>
-							<?php endif; ?>
-							
-							<?php if (($siteConfig['features']['timetable'] ?? true) || ($siteConfig['features']['plagiarism_checker'] ?? false)): ?>
 							<li><hr class="dropdown-divider"></li>
-							<?php endif; ?>
-							
 							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
 								<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
 							</a></li>
