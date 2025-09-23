@@ -172,14 +172,15 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 								</a>
 							</li>
 							<li>
-								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
-									<i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
+								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
+									<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
 								</a>
 							</li>
 							<li><hr class="dropdown-divider"></li>
 							<li>
-								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
-									<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
+								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
+									<i class="fa-solid fa-search me-2"></i>Plagiarism Checker
+									<span class="badge bg-warning text-dark ms-2">Pro</span>
 								</a>
 							</li>
 						</ul>

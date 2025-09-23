@@ -12,6 +12,14 @@ if (!($siteConfig['features']['plagiarism_checker'] ?? false)) {
     exit;
 }
 
+// Check if user has paid for Pro access (for now, redirect to payment page)
+// In the future, this will check user's subscription status
+$userAuth = new \Auth\UserAuth();
+if (!$userAuth->check() || !$userAuth->user()->hasProAccess()) {
+    header('Location: /payment.php?plan=plagiarism_checker');
+    exit;
+}
+
 $pageTitle = 'Pro Plagiarism Checker';
 $metaDescription = 'Check your text for plagiarism using multiple free APIs. Ensure originality of your academic work.';
 $canonicalUrl = ( (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/plagiarism-checker.php';

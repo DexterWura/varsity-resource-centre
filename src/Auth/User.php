@@ -188,4 +188,22 @@ class User
             'permissions' => $this->getPermissions()
         ];
     }
+
+    /**
+     * Check if user has Pro access (paid subscription)
+     * For now, this always returns false to redirect to payment page
+     * In the future, this will check actual subscription status
+     */
+    public function hasProAccess(): bool
+    {
+        // TODO: Implement actual subscription checking
+        // For now, always return false to show payment page
+        return false;
+        
+        // Future implementation will check:
+        // - Active subscription in database
+        // - Subscription expiry date
+        // - Payment status
+        // - Plan type (monthly/yearly)
+    }
 }

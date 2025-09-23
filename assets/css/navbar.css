@@ -78,6 +78,21 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Pro badge styling */
+.dropdown-item .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 991.98px) {
     body.navbar-sticky {
