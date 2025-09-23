@@ -63,7 +63,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
     </section>
     <?php endif; ?>
 
-    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
+    <?php if (($siteConfig['features']['articles'] ?? true)): ?>
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular now</h2>
@@ -104,7 +104,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
     </section>
     <?php endif; ?>
 
-    <?php if (($siteConfig['features']['businesses'] ?? true)): ?>
+    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Popular houses</h2>
@@ -125,6 +125,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                             </span>
                         </div>
                     </div>
+                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/house.php?id=<?= (int)$h['id'] ?>"></a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -132,7 +133,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
     </section>
     <?php endif; ?>
 
-    <?php if (($siteConfig['features']['houses'] ?? true)): ?>
+    <?php if (($siteConfig['features']['businesses'] ?? true)): ?>
     <section class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Local businesses</h2>
@@ -150,6 +151,7 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                             <span><?= htmlspecialchars($b['category'] ?? '') ?></span>
                         </div>
                     </div>
+                    <a class="stretched-link" href="<?= htmlspecialchars($base) ?>/business.php?id=<?= (int)$b['id'] ?>"></a>
                 </div>
             </div>
             <?php endforeach; ?>
