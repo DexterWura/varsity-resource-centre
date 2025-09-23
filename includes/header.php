@@ -89,10 +89,14 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 				console.log('User dropdown not found - user may not be logged in');
 			}
 			
-			// Initialize Tools dropdown
+			// Initialize Tools dropdown specifically
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
 				console.log('Tools dropdown found and initialized');
+				// Initialize Bootstrap dropdown for Tools
+				new bootstrap.Dropdown(toolsDropdown);
+			} else {
+				console.log('Tools dropdown not found');
 			}
 			
 			// Sticky Navigation Functionality
@@ -218,6 +222,26 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			border: none;
 			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 			border-radius: 8px;
+			display: none;
+		}
+		
+		#toolsDropdown .dropdown-menu.show {
+			display: block;
+		}
+		
+		/* Ensure dropdown items are visible */
+		.dropdown-menu .dropdown-item {
+			display: block;
+			width: 100%;
+			padding: 0.5rem 1rem;
+			clear: both;
+			font-weight: 400;
+			color: #212529;
+			text-align: inherit;
+			text-decoration: none;
+			white-space: nowrap;
+			background-color: transparent;
+			border: 0;
 		}
 		
 		/* Smooth scroll behavior */
@@ -273,7 +297,10 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 							</a></li>
 							<?php endif; ?>
 							
+							<?php if (($siteConfig['features']['timetable'] ?? true) || ($siteConfig['features']['plagiarism_checker'] ?? false)): ?>
 							<li><hr class="dropdown-divider"></li>
+							<?php endif; ?>
+							
 							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
 								<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
 							</a></li>
