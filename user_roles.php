@@ -113,7 +113,7 @@ try {
             margin: 2px;
             display: inline-block;
         }
-    </style>
+    
         :root {
             --dash-bg: #f8f9fb;
             --dash-card: #ffffff;
