@@ -89,6 +89,12 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 				console.log('User dropdown not found - user may not be logged in');
 			}
 			
+			// Initialize Tools dropdown
+			var toolsDropdown = document.getElementById('toolsDropdown');
+			if (toolsDropdown) {
+				console.log('Tools dropdown found and initialized');
+			}
+			
 			// Sticky Navigation Functionality
 			var navbar = document.querySelector('.navbar');
 			var body = document.body;
@@ -198,6 +204,22 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			border-bottom: 1px solid #dee2e6;
 		}
 		
+		/* Tools dropdown styling */
+		#toolsDropdown {
+			transition: all 0.3s ease;
+		}
+		
+		#toolsDropdown:hover {
+			background-color: rgba(0,0,0,0.1);
+			border-radius: 5px;
+		}
+		
+		#toolsDropdown .dropdown-menu {
+			border: none;
+			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+			border-radius: 8px;
+		}
+		
 		/* Smooth scroll behavior */
 		html {
 			scroll-behavior: smooth;
@@ -227,13 +249,36 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			<div class="collapse navbar-collapse" id="vrcNav">
 				<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
 					<li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/index.php">Home</a></li>
-					<?php if (($siteConfig['features']['timetable'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/timetable.php">Timetable</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['houses'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/houses.php">Houses</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['businesses'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/businesses.php">Businesses</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['jobs'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/jobs.php">Jobs</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['articles'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/articles.php">Articles</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['news'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/news.php">News</a></li><?php endif; ?>
-					<li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/resume.php">Resume</a></li>
+					
+					<!-- Tools Dropdown -->
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+							<i class="fa-solid fa-tools me-1"></i>Tools
+						</a>
+						<ul class="dropdown-menu" aria-labelledby="toolsDropdown">
+							<?php if (($siteConfig['features']['timetable'] ?? true)): ?>
+							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/timetable.php">
+								<i class="fa-regular fa-calendar me-2"></i>Timetable
+							</a></li>
+							<?php endif; ?>
+							
+							<?php if (($siteConfig['features']['plagiarism_checker'] ?? false)): ?>
+							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
+								<i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
+							</a></li>
+							<?php endif; ?>
+							
+							<li><hr class="dropdown-divider"></li>
+							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
+								<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
+							</a></li>
+						</ul>
+					</li>
 					
 					<!-- User Authentication Links -->
 					<?php if ($userAuth->check()): ?>
