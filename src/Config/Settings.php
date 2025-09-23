@@ -23,6 +23,11 @@ class Settings {
         return $this->cache;
     }
 
+    public function set(string $key, $value): void {
+        $this->cache[$key] = $value;
+        @file_put_contents($this->file, json_encode($this->cache, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
     public function setMany(array $values): void {
         $this->cache = array_merge($this->cache, $values);
         @file_put_contents($this->file, json_encode($this->cache, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
