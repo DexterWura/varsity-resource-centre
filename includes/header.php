@@ -71,15 +71,35 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css">
-	<script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script>
+	<!-- <script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script> - Temporarily disabled to test dropdown -->
 	<script>
 		// Ensure dropdowns work properly
 		document.addEventListener('DOMContentLoaded', function() {
 			// Initialize Bootstrap dropdown manually (required for this site)
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
+				console.log('Tools dropdown found');
 				// Manually initialize Bootstrap dropdown
 				var dropdown = new bootstrap.Dropdown(toolsDropdown);
+				console.log('Dropdown initialized');
+				
+				// Test click
+				toolsDropdown.addEventListener('click', function(e) {
+					console.log('Tools clicked');
+					// Force toggle if needed
+					setTimeout(function() {
+						var menu = toolsDropdown.nextElementSibling;
+						if (menu && menu.classList.contains('dropdown-menu')) {
+							console.log('Menu classes:', menu.className);
+							if (!menu.classList.contains('show')) {
+								console.log('Forcing show class');
+								menu.classList.add('show');
+							}
+						}
+					}, 50);
+				});
+			} else {
+				console.log('Tools dropdown NOT found');
 			}
 			
 			// Sticky Navigation Functionality
