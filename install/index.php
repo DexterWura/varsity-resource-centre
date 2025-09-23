@@ -67,6 +67,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $configData['features']['timetable'] = isset($_POST['enable_timetable']);
             $configData['features']['plagiarism_checker'] = isset($_POST['enable_plagiarism']);
             
+            // Create custom admin user
+            $adminEmail = trim((string)($_POST['admin_email'] ?? 'admin@varsityresource.com'));
+            $adminPassword = (string)($_POST['admin_password'] ?? 'admin123');
+            
+            // Update the default admin user with custom credentials
+            $stmt = $pdo->prepare('
+                UPDATE users 
+                SET email = ?, full_name = ?, password_hash = ? 
+                WHERE email = "admin@varsityresource.com"
+            ');
+            $stmt->execute([
+                $adminEmail,
+                'Super Admin',
+                password_hash($adminPassword, PASSWORD_DEFAULT)
+            ]);
+            
             $config->setMany($configData);
             header('Location: /index.php');
             exit;
@@ -120,6 +136,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-12">
                     <label class="form-label">Theme Primary Color</label>
                     <input type="color" class="form-control form-control-color" name="theme_primary" value="#0d6efd">
+                </div>
+                
+                <div class="col-12 mt-3">
+                    <h6 class="text-primary">Admin Account</h6>
+                    <p class="text-muted small">Create your admin account for accessing the admin panel.</p>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Admin Email</label>
+                    <input type="email" class="form-control" name="admin_email" placeholder="admin@yourdomain.com" value="admin@varsityresource.com" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Admin Password</label>
+                    <input type="password" class="form-control" name="admin_password" placeholder="Enter a secure password" value="admin123" required>
+                    <small class="form-text text-muted">⚠️ Change this password after installation!</small>
                 </div>
                 
                 <div class="col-12 mt-3">

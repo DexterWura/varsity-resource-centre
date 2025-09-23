@@ -105,7 +105,7 @@ try {
         // Create new user
         $user = User::create([
             'email' => $email,
-            'name' => $name,
+            'full_name' => $name,
             'password' => $password
         ]);
         

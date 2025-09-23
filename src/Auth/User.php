@@ -62,16 +62,16 @@ class User
             $userId = $pdo->lastInsertId();
             
             // Assign default 'user' role
-            $stmt = $pdo->prepare('SELECT id FROM user_roles WHERE name = ?');
+            $stmt = $pdo->prepare('SELECT id FROM roles WHERE name = ?');
             $stmt->execute(['user']);
             $userRole = $stmt->fetch();
             
             if ($userRole) {
                 $stmt = $pdo->prepare('
-                    INSERT INTO user_role_assignments (user_id, role_id, status) 
-                    VALUES (?, ?, ?)
+                    INSERT INTO user_roles (user_id, role_id) 
+                    VALUES (?, ?)
                 ');
-                $stmt->execute([$userId, $userRole['id'], 'approved']);
+                $stmt->execute([$userId, $userRole['id']]);
             }
             
             return self::findById((int)$userId);
@@ -115,10 +115,10 @@ class User
         try {
             $pdo = DB::pdo();
             $stmt = $pdo->prepare('
-                SELECT ur.name, ur.permissions, ura.status
-                FROM user_role_assignments ura
-                JOIN user_roles ur ON ura.role_id = ur.id
-                WHERE ura.user_id = ? AND ura.status = "approved"
+                SELECT r.name, r.permissions
+                FROM user_roles ur
+                JOIN roles r ON ur.role_id = r.id
+                WHERE ur.user_id = ?
             ');
             $stmt->execute([$this->getId()]);
             $this->roles = $stmt->fetchAll();
