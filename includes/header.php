@@ -72,8 +72,9 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css">
 	<script>
-		// Initialize Tools dropdown
+		// Initialize dropdowns
 		document.addEventListener('DOMContentLoaded', function() {
+			// Initialize Tools dropdown
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
 				// Initialize Bootstrap dropdown
@@ -84,6 +85,28 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 					e.preventDefault();
 					
 					var menu = toolsDropdown.nextElementSibling;
+					if (menu && menu.classList.contains('dropdown-menu')) {
+						// Toggle the show class manually
+						if (menu.classList.contains('show')) {
+							menu.classList.remove('show');
+						} else {
+							menu.classList.add('show');
+						}
+					}
+				});
+			}
+			
+			// Initialize User dropdown
+			var userDropdown = document.getElementById('userDropdown');
+			if (userDropdown) {
+				// Initialize Bootstrap dropdown
+				var userDropdownInstance = new bootstrap.Dropdown(userDropdown);
+				
+				// Manual toggle for reliable functionality
+				userDropdown.addEventListener('click', function(e) {
+					e.preventDefault();
+					
+					var menu = userDropdown.nextElementSibling;
 					if (menu && menu.classList.contains('dropdown-menu')) {
 						// Toggle the show class manually
 						if (menu.classList.contains('show')) {
