@@ -10,23 +10,11 @@ CREATE TABLE IF NOT EXISTS user_role_requests (
     requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reviewed_at TIMESTAMP NULL DEFAULT NULL,
     reviewed_by INT NULL DEFAULT NULL,
-    review_notes TEXT NULL DEFAULT NULL
+    review_notes TEXT NULL DEFAULT NULL,
+    INDEX idx_user_status (user_id, status),
+    INDEX idx_status (status),
+    INDEX idx_requested_at (requested_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Add foreign key constraints separately to avoid transaction issues
-ALTER TABLE user_role_requests 
-ADD CONSTRAINT IF NOT EXISTS fk_user_role_requests_user_id 
-FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-
-ALTER TABLE user_role_requests 
-ADD CONSTRAINT IF NOT EXISTS fk_user_role_requests_role_id 
-FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE;
-
-ALTER TABLE user_role_requests 
-ADD CONSTRAINT IF NOT EXISTS fk_user_role_requests_reviewed_by 
-FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL;
-
--- Add indexes separately
-CREATE INDEX IF NOT EXISTS idx_user_role_requests_user_status ON user_role_requests(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_user_role_requests_status ON user_role_requests(status);
-CREATE INDEX IF NOT EXISTS idx_user_role_requests_requested_at ON user_role_requests(requested_at);
