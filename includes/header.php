@@ -81,16 +81,22 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 				var dropdown = new bootstrap.Dropdown(toolsDropdown);
 				console.log('Dropdown initialized');
 				
-				// Test click
+				// Force dropdown to work
 				toolsDropdown.addEventListener('click', function(e) {
 					console.log('Tools clicked');
-					setTimeout(function() {
-						var menu = toolsDropdown.nextElementSibling;
-						if (menu) {
-							console.log('Menu classes:', menu.className);
-							console.log('Menu display:', window.getComputedStyle(menu).display);
+					e.preventDefault();
+					
+					var menu = toolsDropdown.nextElementSibling;
+					if (menu && menu.classList.contains('dropdown-menu')) {
+						// Toggle the show class manually
+						if (menu.classList.contains('show')) {
+							menu.classList.remove('show');
+							console.log('Hiding dropdown');
+						} else {
+							menu.classList.add('show');
+							console.log('Showing dropdown');
 						}
-					}, 100);
+					}
 				});
 			} else {
 				console.log('Tools dropdown NOT found');
