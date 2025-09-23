@@ -29,17 +29,19 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                 <div class="col-lg-7">
                     <h1 class="display-6 mb-2 hero-title">Everything students need, in one place</h1>
                     <p class="col-lg-10 fs-6 text-muted mb-3 hero-subtitle">Timetables, jobs, articles, and campus news tailored for Zimbabwean universities.</p>
-                    <form class="hero-search" action="<?= htmlspecialchars($base) ?>/timetable.php" method="get">
+                    <form class="hero-search" action="<?= htmlspecialchars($base) ?>/search.php" method="get">
                         <div class="input-group input-group-lg hero-search-box">
                             <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search modules, faculties, or universities..." aria-label="Search">
+                            <input type="text" name="q" class="form-control border-start-0" placeholder="Search everything: houses, jobs, articles, businesses..." aria-label="Search">
                             <button class="btn btn-primary hero-search-btn" type="submit">Search</button>
                         </div>
                         <div class="d-flex flex-wrap gap-2 mt-2 small hero-pills">
                             <span class="text-muted">Popular:</span>
-                            <a href="<?= htmlspecialchars($base) ?>/jobs.php" class="category-pill pill-animate">Jobs</a>
-                            <a href="<?= htmlspecialchars($base) ?>/businesses.php" class="category-pill pill-animate">Businesses</a>
-                            <a href="<?= htmlspecialchars($base) ?>/houses.php" class="category-pill pill-animate">Offrez Accommodation</a>
+                            <?php if (($siteConfig['features']['jobs'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/jobs.php" class="category-pill pill-animate">Jobs</a><?php endif; ?>
+                            <?php if (($siteConfig['features']['businesses'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/businesses.php" class="category-pill pill-animate">Businesses</a><?php endif; ?>
+                            <?php if (($siteConfig['features']['houses'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/houses.php" class="category-pill pill-animate">Accommodation</a><?php endif; ?>
+                            <?php if (($siteConfig['features']['articles'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/articles.php" class="category-pill pill-animate">Articles</a><?php endif; ?>
+                            <?php if (($siteConfig['features']['news'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/news.php" class="category-pill pill-animate">News</a><?php endif; ?>
                         </div>
                     </form>
                 </div>
@@ -95,6 +97,8 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
             <?php if (($siteConfig['features']['jobs'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/jobs.php"><i class="fa-solid fa-briefcase me-1"></i> Jobs</a><?php endif; ?>
             <?php if (($siteConfig['features']['articles'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/articles.php"><i class="fa-regular fa-newspaper me-1"></i> Articles</a><?php endif; ?>
             <?php if (($siteConfig['features']['news'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/news.php"><i class="fa-solid fa-bolt me-1"></i> Student News</a><?php endif; ?>
+            <?php if (($siteConfig['features']['houses'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/houses.php"><i class="fa-solid fa-house me-1"></i> Accommodation</a><?php endif; ?>
+            <?php if (($siteConfig['features']['businesses'] ?? true)): ?><a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/businesses.php"><i class="fa-solid fa-store me-1"></i> Businesses</a><?php endif; ?>
             <a class="btn btn-light pill-btn category-btn" href="<?= htmlspecialchars($base) ?>/resume.php"><i class="fa-regular fa-file-lines me-1"></i> Resume</a>
         </div>
     </section>
