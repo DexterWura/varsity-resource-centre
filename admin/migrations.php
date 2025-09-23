@@ -262,7 +262,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                         <div class="list-group list-group-flush">
                                             <?php foreach ($pendingMigrations as $migration): ?>
                                                 <div class="list-group-item px-0">
-                                                    <div class="fw-bold"><?= htmlspecialchars($migration['version']) ?></div>
+                                                    <div class="fw-bold"><?= htmlspecialchars((string)$migration['version']) ?></div>
                                                     <small class="text-muted"><?= htmlspecialchars($migration['description']) ?></small>
                                                 </div>
                                             <?php endforeach; ?>
@@ -300,7 +300,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                                 <tbody>
                                                     <?php foreach (array_slice($migrationHistory, 0, 10) as $migration): ?>
                                                         <tr>
-                                                            <td><?= htmlspecialchars($migration['version']) ?></td>
+                                                            <td><?= htmlspecialchars((string)$migration['version']) ?></td>
                                                             <td class="text-truncate" style="max-width: 200px;" title="<?= htmlspecialchars($migration['description']) ?>">
                                                                 <?= htmlspecialchars($migration['description']) ?>
                                                             </td>
@@ -346,7 +346,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                     <tbody>
                                         <?php foreach ($results as $result): ?>
                                             <tr>
-                                                <td><code>V<?= htmlspecialchars($result['version']) ?></code></td>
+                                                <td><code>V<?= htmlspecialchars((string)$result['version']) ?></code></td>
                                                 <td><?= htmlspecialchars($result['description']) ?></td>
                                                 <td><small class="text-muted"><?= htmlspecialchars($result['file']) ?></small></td>
                                                 <td>
@@ -397,7 +397,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                         <?php foreach ($allMigrations as $migration): ?>
                                         <tr>
                                             <td>
-                                                <code>V<?= htmlspecialchars($migration['version']) ?></code>
+                                                <code>V<?= htmlspecialchars((string)$migration['version']) ?></code>
                                             </td>
                                             <td>
                                                 <div class="fw-bold"><?= htmlspecialchars($migration['description']) ?></div>
@@ -425,9 +425,9 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                                     <form method="post" class="d-inline">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
                                                         <input type="hidden" name="action" value="run_single_migration">
-                                                        <input type="hidden" name="version" value="<?= htmlspecialchars($migration['version']) ?>">
+                                                        <input type="hidden" name="version" value="<?= htmlspecialchars((string)$migration['version']) ?>">
                                                         <button class="btn btn-sm btn-primary" type="submit" 
-                                                                onclick="return confirm('Run migration V<?= htmlspecialchars($migration['version']) ?>?')">
+                                                                onclick="return confirm('Run migration V<?= htmlspecialchars((string)$migration['version']) ?>?')">
                                                             <i class="bi bi-play-circle me-1"></i>Run
                                                         </button>
                                                     </form>
@@ -437,7 +437,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                                 
                                                 <button class="btn btn-sm btn-outline-info ms-1" 
                                                         data-bs-toggle="modal" 
-                                                        data-bs-target="#migrationModal<?= $migration['version'] ?>">
+                                                        data-bs-target="#migrationModal<?= htmlspecialchars((string)$migration['version']) ?>">
                                                     <i class="bi bi-eye me-1"></i>View
                                                 </button>
                                             </td>
@@ -455,12 +455,12 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
 
     <!-- Migration Detail Modals -->
     <?php foreach ($allMigrations as $migration): ?>
-    <div class="modal fade" id="migrationModal<?= $migration['version'] ?>" tabindex="-1">
+    <div class="modal fade" id="migrationModal<?= htmlspecialchars((string)$migration['version']) ?>" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        Migration V<?= htmlspecialchars($migration['version']) ?> - <?= htmlspecialchars($migration['description']) ?>
+                        Migration V<?= htmlspecialchars((string)$migration['version']) ?> - <?= htmlspecialchars($migration['description']) ?>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -471,7 +471,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                             <table class="table table-sm">
                                 <tr>
                                     <td><strong>Version:</strong></td>
-                                    <td>V<?= htmlspecialchars($migration['version']) ?></td>
+                                    <td>V<?= htmlspecialchars((string)$migration['version']) ?></td>
                                 </tr>
                                 <tr>
                                     <td><strong>Description:</strong></td>
@@ -505,7 +505,7 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                                 </tr>
                                 <tr>
                                     <td><strong>Checksum:</strong></td>
-                                    <td><code><?= htmlspecialchars($migration['checksum']) ?></code></td>
+                                    <td><code><?= htmlspecialchars((string)$migration['checksum']) ?></code></td>
                                 </tr>
                             </table>
                         </div>
@@ -520,9 +520,9 @@ $migrationHistory = $migrationRunner->getMigrationHistory();
                         <form method="post" class="d-inline">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
                             <input type="hidden" name="action" value="run_single_migration">
-                            <input type="hidden" name="version" value="<?= htmlspecialchars($migration['version']) ?>">
+                            <input type="hidden" name="version" value="<?= htmlspecialchars((string)$migration['version']) ?>">
                             <button class="btn btn-primary" type="submit" 
-                                    onclick="return confirm('Run migration V<?= htmlspecialchars($migration['version']) ?>?')">
+                                    onclick="return confirm('Run migration V<?= htmlspecialchars((string)$migration['version']) ?>?')">
                                 <i class="bi bi-play-circle me-1"></i>Run Migration
                             </button>
                         </form>

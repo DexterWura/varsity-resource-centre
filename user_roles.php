@@ -328,7 +328,7 @@ $features = $siteConfig['features'] ?? [
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label fw-bold text-muted">User ID</label>
-                                        <p class="form-control-plaintext fw-semibold"><?= htmlspecialchars($user->getId()) ?></p>
+                                        <p class="form-control-plaintext fw-semibold"><?= htmlspecialchars((string)$user->getId()) ?></p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
