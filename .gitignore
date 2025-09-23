@@ -1,0 +1,39 @@
+# Configuration files with sensitive data
+storage/app.php
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+storage/logs/
+
+# Cache
+storage/cache/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+
+# Uploads
+storage/uploads/
+public/uploads/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+vendor/
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
