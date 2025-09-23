@@ -377,7 +377,7 @@ try {
                     <?php endif; ?>
 
                     <!-- Dashboard Section -->
-                    <div id="dashboard-section">
+                    <div id="dashboard-section" style="display: block;">
                         <!-- Stats Cards -->
                         <div class="row mb-4">
                             <div class="col-md-3 mb-3">
@@ -1067,24 +1067,56 @@ try {
         });
         
         function showSection(section) {
+            console.log('showSection called with:', section); // Debug log
+            
             // Hide all sections
-            document.querySelectorAll('[id$="-section"]').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('[id$="-section"]').forEach(s => {
+                s.style.display = 'none';
+                console.log('Hiding section:', s.id); // Debug log
+            });
             
             // Show selected section
-            document.getElementById(section + '-section').style.display = 'block';
+            const targetSection = document.getElementById(section + '-section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                console.log('Showing section:', section + '-section'); // Debug log
+            } else {
+                console.error('Section not found:', section + '-section'); // Debug log
+            }
             
             // Update active nav link
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            const activeLink = document.querySelector(`[data-section="${section}"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+                console.log('Activated nav link for:', section); // Debug log
+            } else {
+                console.error('Nav link not found for:', section); // Debug log
+            }
         }
         
         // Handle URL hash on page load
-        if (window.location.hash) {
-            const section = window.location.hash.substring(1); // Remove the #
-            if (section && document.getElementById(section + '-section')) {
-                showSection(section);
+        function handleHashNavigation() {
+            if (window.location.hash) {
+                const section = window.location.hash.substring(1); // Remove the #
+                console.log('Hash detected:', section); // Debug log
+                if (section && document.getElementById(section + '-section')) {
+                    console.log('Showing section:', section); // Debug log
+                    showSection(section);
+                } else {
+                    console.log('Section not found:', section + '-section'); // Debug log
+                }
+            } else {
+                // Default to dashboard section
+                showSection('dashboard');
             }
         }
+        
+        // Run on page load
+        handleHashNavigation();
+        
+        // Also listen for hash changes
+        window.addEventListener('hashchange', handleHashNavigation);
     </script>
 </body>
 </html>
