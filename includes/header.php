@@ -70,6 +70,7 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
+	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css">
 	<script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script>
 	<script>
 		// Ensure dropdowns work properly
@@ -121,97 +122,6 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<?php endif; ?>
 	<style>
 		:root{ --bs-primary: <?= htmlspecialchars($primaryColor) ?>; }
-		
-		/* Sticky Navigation */
-		.navbar {
-			transition: all 0.3s ease;
-			z-index: 1030;
-		}
-		
-		.navbar.sticky {
-			position: fixed;
-			top: 0;
-			left: 0;
-			right: 0;
-			background-color: rgba(255, 255, 255, 0.95) !important;
-			backdrop-filter: blur(10px);
-			-webkit-backdrop-filter: blur(10px);
-			box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-			border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-		}
-		
-		.navbar.sticky .navbar-brand {
-			font-size: 1.1rem;
-		}
-		
-		.navbar.sticky .nav-link {
-			padding: 0.4rem 0.8rem;
-		}
-		
-		/* Add padding to body when navbar is sticky */
-		body.navbar-sticky {
-			padding-top: 76px;
-		}
-		
-		/* User dropdown styling */
-		#userDropdown {
-			cursor: pointer;
-			transition: all 0.3s ease;
-		}
-		
-		#userDropdown:hover {
-			background-color: rgba(0,0,0,0.1);
-			border-radius: 5px;
-		}
-		
-		.dropdown-menu {
-			border: none;
-			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-			border-radius: 8px;
-		}
-		
-		.dropdown-item {
-			padding: 0.5rem 1rem;
-			transition: all 0.2s ease;
-		}
-		
-		.dropdown-item:hover {
-			background-color: #f8f9fa;
-			transform: translateX(5px);
-		}
-		
-		.dropdown-header {
-			padding: 0.75rem 1rem 0.5rem;
-			background-color: #f8f9fa;
-			border-bottom: 1px solid #dee2e6;
-		}
-		
-		/* Tools dropdown styling */
-		#toolsDropdown {
-			transition: all 0.3s ease;
-		}
-		
-		/* Tools dropdown styling - minimal interference with Bootstrap */
-		#toolsDropdown:hover {
-			background-color: rgba(0,0,0,0.1);
-			border-radius: 5px;
-		}
-		
-		/* Smooth scroll behavior */
-		html {
-			scroll-behavior: smooth;
-		}
-		
-		/* Mobile responsive adjustments */
-		@media (max-width: 991.98px) {
-			body.navbar-sticky {
-				padding-top: 70px;
-			}
-			
-			.navbar.sticky .navbar-brand {
-				font-size: 1rem;
-			}
-		}
 	</style>
 </head>
 <body>

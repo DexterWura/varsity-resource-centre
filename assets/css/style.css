@@ -1,42 +1,4 @@
-body {
-    background-color: #f8f9fa;
-    font-family: Arial, sans-serif;
-}
-
-h1, h2 {
-    color: #343a40;
-    text-align: center;
-}
-
-form {
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 5px;
-    background-color: #ffffff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-label {
-    font-weight: bold;
-}
-
-.table {
-    margin-top: 20px;
-}
-
-.table th {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-custom {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-custom:hover {
-    background-color: #0056b3;
-}
+/* Main application styles */
 body {
     background-color: #f8f9fa;
     font-family: Arial, sans-serif;
@@ -70,7 +32,7 @@ label {
 
 /* Custom Button Styles */
 .btn-custom {
-    background-color: #007bff; /* Primary color */
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
@@ -79,13 +41,13 @@ label {
 }
 
 .btn-custom:hover {
-    background-color: #0056b3; /* Darker shade for hover */
-    transform: translateY(-2px); /* Lift effect */
+    background-color: #0056b3;
+    transform: translateY(-2px);
 }
 
 .btn-custom:active {
-    transform: translateY(0); /* Reset effect when active */
-    background-color: #004494; /* Even darker shade when active */
+    transform: translateY(0);
+    background-color: #004494;
 }
 
 /* Ad slot helpers */
@@ -187,6 +149,7 @@ label {
 .truncate-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -476,74 +439,5 @@ label {
     .section-animate.animate-in {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-/* Enhanced Sticky Navigation Styles */
-.navbar.sticky {
-    animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Smooth transitions for navbar elements */
-.navbar .nav-link {
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.navbar .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: var(--bs-primary);
-    transition: all 0.3s ease;
-    transform: translateX(-50%);
-}
-
-.navbar .nav-link:hover::after {
-    width: 80%;
-}
-
-.navbar .nav-link.active::after {
-    width: 80%;
-}
-
-/* Enhanced navbar brand animation */
-.navbar-brand {
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.navbar-brand:hover {
-    transform: scale(1.05);
-}
-
-/* Mobile navbar improvements */
-@media (max-width: 991.98px) {
-    .navbar-collapse {
-        background: rgba(255, 255, 255, 0.98);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 10px;
-        margin-top: 10px;
-        padding: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-    }
-    
-    .navbar.sticky .navbar-collapse {
-        background: rgba(255, 255, 255, 0.95);
     }
 }
