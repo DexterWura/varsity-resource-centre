@@ -226,10 +226,16 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 									<small class="text-muted"><?= htmlspecialchars($userAuth->user()->getEmail()) ?></small>
 								</li>
 								<li><hr class="dropdown-divider"></li>
+								<?php if ($userAuth->user()->hasRole('admin')): ?>
+								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/admin/dashboard.php">
+									<i class="fa-solid fa-tachometer-alt me-2"></i>Admin Dashboard
+								</a></li>
+								<?php else: ?>
 								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/dashboard.php">
 									<i class="fa-solid fa-tachometer-alt me-2"></i>Dashboard
 								</a></li>
-								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/user_roles.php">
+								<?php endif; ?>
+								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/profile.php">
 									<i class="fa-solid fa-user-cog me-2"></i>Profile
 								</a></li>
 								<li><hr class="dropdown-divider"></li>

@@ -11,6 +11,12 @@ $userAuth = new UserAuth();
 $userAuth->requireAuth();
 
 $user = $userAuth->user();
+
+// Redirect admin users to admin dashboard
+if ($user->hasRole('admin')) {
+    header('Location: /admin/dashboard.php');
+    exit;
+}
 $error = $_GET['error'] ?? '';
 // Feature flags
 $siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : [];
