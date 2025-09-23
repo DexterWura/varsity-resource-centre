@@ -40,12 +40,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$content = trim($_POST['content'] ?? '');
 				$excerpt = trim($_POST['excerpt'] ?? '');
 				
+				// Clean up content - remove empty HTML tags and whitespace
+				$content = preg_replace('/<p><br><\/p>/', '', $content);
+				$content = preg_replace('/<p><\/p>/', '', $content);
+				$content = trim($content);
+				
+				// Debug: Log what we're receiving
+				error_log('Article create debug - Title: "' . $title . '", Content length: ' . strlen($content) . ', Content: "' . substr($content, 0, 100) . '"');
+				
 				// Determine if this is a draft or submit action
 				$isDraft = isset($_POST['save_draft']);
 				$isSubmit = isset($_POST['submit_for_review']);
 				
 				if ($title === '' || $content === '') {
-					throw new \RuntimeException('Title and content are required.');
+					throw new \RuntimeException('Title and content are required. Please make sure you have entered both a title and some content for your article.');
 				}
 				
 				$status = $isSubmit ? 'submitted' : 'draft';
@@ -301,6 +309,26 @@ try {
             font-size: 0.8rem;
             font-weight: 600;
         }
+        /* Content editor styles */
+        #editor:empty:before {
+            content: attr(data-placeholder);
+            color: #6c757d;
+            font-style: italic;
+        }
+        #editor:focus:before {
+            content: none;
+        }
+        #editor {
+            outline: none;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+        }
+        #editor:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -696,7 +724,7 @@ try {
                                                     <button type="button" class="btn btn-outline-secondary" data-cmd="removeFormat"><i class="bi bi-eraser"></i></button>
                                                 </div>
                                             </div>
-                                            <div id="editor" contenteditable="true" class="form-control" style="min-height:220px"></div>
+                                            <div id="editor" contenteditable="true" class="form-control" style="min-height:220px" data-placeholder="Start writing your article content here..."></div>
                                             <textarea name="content" id="editorInput" class="d-none"></textarea>
 											</div>
 											<div class="mb-3">
@@ -706,6 +734,9 @@ try {
 											<div class="d-flex gap-2">
 												<button class="btn btn-outline-secondary" type="submit" name="save_draft">Save Draft</button>
 												<button class="btn btn-primary" type="submit" name="submit_for_review">Submit for Review</button>
+											</div>
+											<div class="mt-2">
+												<small class="text-muted">Make sure to enter both a title and content before submitting.</small>
 											</div>
 										</form>
 									</div>
@@ -967,7 +998,10 @@ try {
                 });
             });
             editable.form?.addEventListener('submit', function(){
-                hiddenInput.value = editable.innerHTML;
+                var content = editable.innerHTML || editable.textContent || '';
+                // Clean up empty paragraphs and whitespace
+                content = content.replace(/<p><br><\/p>/g, '').replace(/<p><\/p>/g, '').trim();
+                hiddenInput.value = content;
             });
         }
         // Bind create form editor
@@ -976,6 +1010,38 @@ try {
             var editable = document.getElementById('editor');
             var hidden = document.getElementById('editorInput');
             bindEditor(toolbar, editable, hidden);
+            
+            // Real-time sync and form submit handling
+            var form = editable?.closest('form');
+            if (form) {
+                // Sync content on every change
+                editable.addEventListener('input', function() {
+                    if (hidden) {
+                        var content = editable.innerHTML || editable.textContent || '';
+                        content = content.replace(/<p><br><\/p>/g, '').replace(/<p><\/p>/g, '').trim();
+                        hidden.value = content;
+                    }
+                });
+                
+                // Final sync on form submit
+                form.addEventListener('submit', function(e) {
+                    if (editable && hidden) {
+                        var content = editable.innerHTML || editable.textContent || '';
+                        // Clean up empty paragraphs and whitespace
+                        content = content.replace(/<p><br><\/p>/g, '').replace(/<p><\/p>/g, '').trim();
+                        hidden.value = content;
+                        console.log('Final sync - Content length:', hidden.value.length, 'characters');
+                        
+                        // If content is still empty, prevent submission
+                        if (!content.trim()) {
+                            e.preventDefault();
+                            alert('Please enter some content for your article.');
+                            editable.focus();
+                            return false;
+                        }
+                    }
+                });
+            }
         })();
         // Bind all update editors
         document.querySelectorAll('.article-editor').forEach(function(ed){
