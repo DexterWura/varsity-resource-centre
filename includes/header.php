@@ -72,10 +72,63 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script>
+	<script>
+		// Ensure dropdowns work properly
+		document.addEventListener('DOMContentLoaded', function() {
+			// Initialize all dropdowns
+			var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+			var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+				return new bootstrap.Dropdown(dropdownToggleEl);
+			});
+			
+			// Debug: Log if user dropdown exists
+			var userDropdown = document.getElementById('userDropdown');
+			if (userDropdown) {
+				console.log('User dropdown found and initialized');
+			} else {
+				console.log('User dropdown not found - user may not be logged in');
+			}
+		});
+	</script>
 	<?php if ($settings->get('adsense_client')): ?>
 		<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?= htmlspecialchars($settings->get('adsense_client')) ?>" crossorigin="anonymous"></script>
 	<?php endif; ?>
-	<style>:root{ --bs-primary: <?= htmlspecialchars($primaryColor) ?>; }</style>
+	<style>
+		:root{ --bs-primary: <?= htmlspecialchars($primaryColor) ?>; }
+		
+		/* User dropdown styling */
+		#userDropdown {
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+		
+		#userDropdown:hover {
+			background-color: rgba(0,0,0,0.1);
+			border-radius: 5px;
+		}
+		
+		.dropdown-menu {
+			border: none;
+			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+			border-radius: 8px;
+		}
+		
+		.dropdown-item {
+			padding: 0.5rem 1rem;
+			transition: all 0.2s ease;
+		}
+		
+		.dropdown-item:hover {
+			background-color: #f8f9fa;
+			transform: translateX(5px);
+		}
+		
+		.dropdown-header {
+			padding: 0.75rem 1rem 0.5rem;
+			background-color: #f8f9fa;
+			border-bottom: 1px solid #dee2e6;
+		}
+	</style>
 </head>
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
@@ -101,10 +154,17 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 					<?php if ($userAuth->check()): ?>
 						<!-- Logged in user menu -->
 						<li class="nav-item dropdown">
-							<a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-								<i class="fa-solid fa-user me-1"></i><?= htmlspecialchars($userAuth->user()->getFullName()) ?>
+							<a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+								<i class="fa-solid fa-user-circle me-2"></i>
+								<span class="d-none d-md-inline"><?= htmlspecialchars($userAuth->user()->getFullName()) ?></span>
+								<span class="d-md-none"><?= htmlspecialchars(substr($userAuth->user()->getFullName(), 0, 10)) ?>...</span>
 							</a>
-							<ul class="dropdown-menu dropdown-menu-end">
+							<ul class="dropdown-menu dropdown-menu-end shadow">
+								<li class="dropdown-header">
+									<div class="fw-bold"><?= htmlspecialchars($userAuth->user()->getFullName()) ?></div>
+									<small class="text-muted"><?= htmlspecialchars($userAuth->user()->getEmail()) ?></small>
+								</li>
+								<li><hr class="dropdown-divider"></li>
 								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/dashboard.php">
 									<i class="fa-solid fa-tachometer-alt me-2"></i>Dashboard
 								</a></li>
@@ -112,7 +172,7 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 									<i class="fa-solid fa-user-cog me-2"></i>Profile
 								</a></li>
 								<li><hr class="dropdown-divider"></li>
-								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/logout.php">
+								<li><a class="dropdown-item text-danger" href="<?= htmlspecialchars($base) ?>/logout.php">
 									<i class="fa-solid fa-sign-out-alt me-2"></i>Logout
 								</a></li>
 							</ul>
