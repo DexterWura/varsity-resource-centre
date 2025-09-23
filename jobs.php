@@ -1,20 +1,40 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php require_once __DIR__ . '/bootstrap.php'; ?>
-<?php use Http\HttpClient; use Database\DB; ?>
+<?php use Http\HttpClient; use Database\DB; use Jobs\JobAPIs; use Config\Settings; ?>
 
 <?php
-// Prefer DB-backed Zimbabwe-focused jobs; fallback to public API
+// Get jobs from database and APIs, then shuffle them
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = 12;
 $jobs = [];
+
 try {
+    // Get database jobs
     $pdo = DB::pdo();
     $stmt = $pdo->prepare('SELECT title, company_name, location, description, url FROM jobs WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY id DESC LIMIT :lim OFFSET :off');
     $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
     $stmt->bindValue(':off', ($page-1)*$perPage, PDO::PARAM_INT);
     $stmt->execute();
-    $jobs = $stmt->fetchAll() ?: [];
+    $dbJobs = $stmt->fetchAll() ?: [];
+    
+    // Get API jobs
+    $settings = new Settings(__DIR__ . '/storage/settings.json');
+    $activeAPIs = $settings->get('job_apis', [
+        'open_skills' => true,
+        'devitjobs' => true,
+        'arbeitnow' => true
+    ]);
+    
+    $jobAPIs = new JobAPIs($activeAPIs);
+    $apiJobs = $jobAPIs->fetchShuffledJobs($perPage);
+    
+    // Combine and shuffle all jobs
+    $allJobs = array_merge($dbJobs, $apiJobs);
+    shuffle($allJobs);
+    $jobs = array_slice($allJobs, 0, $perPage);
+    
 } catch (Throwable $e) {
+    // Fallback to old method if new system fails
     $client = new HttpClient();
     $apiUrl = 'https://arbeitnow.com/api/job-board-api?page=' . $page;
     $data = $client->getJson($apiUrl) ?: ['data' => []];
@@ -41,7 +61,10 @@ function truncateWords(string $text, int $maxWords = 45): array {
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title mb-1"><?= htmlspecialchars($job['title'] ?? 'Job') ?></h5>
                         <div class="text-muted small mb-2">
-                            <?= htmlspecialchars($job['company_name'] ?? 'Company') ?> · <?= htmlspecialchars($job['location'] ?? 'Remote/On-site') ?>
+                            <?= htmlspecialchars($job['company_name'] ?? $job['company'] ?? 'Company') ?> · <?= htmlspecialchars($job['location'] ?? 'Remote/On-site') ?>
+                            <?php if (isset($job['source'])): ?>
+                                <span class="badge bg-info ms-1"><?= htmlspecialchars($job['source_display']) ?></span>
+                            <?php endif; ?>
                         </div>
                         <?php $desc = isset($job['description']) ? trim(strip_tags($job['description'])) : ''; list($short, $truncated) = truncateWords($desc, 45); ?>
                         <p class="card-text small flex-grow-1"><?= htmlspecialchars($short) ?></p>

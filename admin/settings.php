@@ -5,6 +5,7 @@ require_once __DIR__ . '/../bootstrap.php';
 use Auth\Auth;
 use Config\Settings;
 use Security\Csrf;
+use Jobs\JobAPIs;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
@@ -17,14 +18,21 @@ $errorMessage = '';
 $settings = new Settings(__DIR__ . '/../storage/settings.json');
 $data = $settings->all();
 
+// Job API settings
+$jobAPIs = $settings->get('job_apis', [
+    'open_skills' => true,
+    'devitjobs' => true,
+    'arbeitnow' => true
+]);
+
 // Feature flags
 $siteConfig = is_file(__DIR__ . '/../storage/app.php') ? (include __DIR__ . '/../storage/app.php') : [];
 $features = $siteConfig['features'] ?? [
-    'articles' => true,
-    'houses' => true,
-    'businesses' => true,
-    'news' => true,
-    'jobs' => true,
+	'articles' => true,
+	'houses' => true,
+	'businesses' => true,
+	'news' => true,
+	'jobs' => true,
 ];
 
 // Handle settings update
@@ -64,10 +72,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $appConfig['features'] = $updates['features'];
                 file_put_contents(__DIR__ . '/../storage/app.php', '<?php' . PHP_EOL . 'return ' . var_export($appConfig, true) . ';');
                 
+                // Update job API settings
+                $jobAPIs = [
+                    'open_skills' => isset($_POST['job_api_open_skills']),
+                    'devitjobs' => isset($_POST['job_api_devitjobs']),
+                    'arbeitnow' => isset($_POST['job_api_arbeitnow'])
+                ];
+                $settings->set('job_apis', $jobAPIs);
+                
                 $successMessage = 'Settings updated successfully.';
             }
             
-        } catch (\Throwable $e) {
+	} catch (\Throwable $e) {
             $errorMessage = $e->getMessage();
         }
     }
@@ -264,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="card-header">
                                 <h5 class="mb-0"><i class="bi bi-toggles me-2"></i>Feature Management</h5>
                             </div>
-                            <div class="card-body">
+	<div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-check form-switch">
@@ -297,6 +313,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                     </div>
                                 </div>
+			</div>
+			</div>
+
+                        <!-- Job API Settings -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-briefcase me-2"></i>Job API Sources</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">Select which job APIs to use. Jobs from active APIs will be shuffled and displayed together.</p>
+                                <div class="row g-3">
+                                    <?php 
+                                    $availableAPIs = JobAPIs::getAvailableAPIs();
+                                    foreach ($availableAPIs as $apiKey => $apiInfo): 
+                                    ?>
+                                    <div class="col-md-4">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <div class="form-check form-switch mb-2">
+                                                    <input class="form-check-input" type="checkbox" name="job_api_<?= $apiKey ?>" 
+                                                           <?= ($jobAPIs[$apiKey] ?? true) ? 'checked' : '' ?>>
+                                                    <label class="form-check-label fw-bold"><?= htmlspecialchars($apiInfo['name']) ?></label>
+                                                </div>
+                                                <p class="small text-muted mb-2"><?= htmlspecialchars($apiInfo['description']) ?></p>
+                                                <div class="small">
+                                                    <strong>Features:</strong>
+                                                    <ul class="mb-0">
+                                                        <?php foreach ($apiInfo['features'] as $feature): ?>
+                                                            <li><?= htmlspecialchars($feature) ?></li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </div>
+                                                <a href="<?= htmlspecialchars($apiInfo['website']) ?>" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                    <i class="bi bi-box-arrow-up-right me-1"></i>Visit Website
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
                         </div>
 
@@ -304,24 +360,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="card mb-4">
                             <div class="card-header">
                                 <h5 class="mb-0"><i class="bi bi-palette me-2"></i>Theme Settings</h5>
-                            </div>
+				</div>
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label class="form-label">Primary Color</label>
                                         <input type="color" class="form-control form-control-color" name="theme_primary" value="<?= htmlspecialchars($data['theme']['primary'] ?? '#7367f0') ?>">
-                                    </div>
+				</div>
                                     <div class="col-md-4">
                                         <label class="form-label">Secondary Color</label>
                                         <input type="color" class="form-control form-control-color" name="theme_secondary" value="<?= htmlspecialchars($data['theme']['secondary'] ?? '#6c757d') ?>">
-                                    </div>
+				</div>
                                     <div class="col-md-4">
                                         <label class="form-label">Background Color</label>
                                         <input type="color" class="form-control form-control-color" name="theme_background" value="<?= htmlspecialchars($data['theme']['background'] ?? '#f8f9fa') ?>">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+				</div>
+				</div>
+				</div>
+			</div>
 
                         <!-- AdSense Settings -->
                         <div class="card mb-4">
@@ -342,9 +398,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <label class="form-label">Sidebar Slot</label>
                                         <input class="form-control" name="adsense_slot_sidebar" value="<?= htmlspecialchars($data['adsense_slot_sidebar'] ?? '') ?>">
                                     </div>
-                                </div>
-                            </div>
-                        </div>
+			</div>
+	</div>
+</div>
 
                         <!-- Donations -->
                         <div class="card mb-4">

@@ -5,6 +5,8 @@ require_once __DIR__ . '/../bootstrap.php';
 use Auth\Auth;
 use Database\DB;
 use Security\Csrf;
+use Jobs\JobAPIs;
+use Config\Settings;
 
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
 if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
@@ -57,13 +59,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get jobs
+// Get jobs from database
 try {
     $pdo = DB::pdo();
-    $jobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 50')->fetchAll();
+    $dbJobs = $pdo->query('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 50')->fetchAll();
 } catch (\Throwable $e) {
-    $jobs = [];
+    $dbJobs = [];
 }
+
+// Get jobs from APIs
+$apiJobs = [];
+try {
+    $settings = new Settings(__DIR__ . '/../storage/settings.json');
+    $activeAPIs = $settings->get('job_apis', [
+        'open_skills' => true,
+        'devitjobs' => true,
+        'arbeitnow' => true
+    ]);
+    
+    $jobAPIs = new JobAPIs($activeAPIs);
+    $apiJobs = $jobAPIs->fetchShuffledJobs(30); // Get 30 API jobs
+} catch (\Throwable $e) {
+    error_log("Failed to fetch API jobs: " . $e->getMessage());
+    $apiJobs = [];
+}
+
+// Combine and shuffle all jobs
+$allJobs = array_merge($dbJobs, $apiJobs);
+shuffle($allJobs);
+$jobs = $allJobs;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -282,25 +306,56 @@ try {
                                                     <div class="d-flex justify-content-between align-items-start">
                                                         <div>
                                                             <h6 class="mb-1"><?= htmlspecialchars($job['title']) ?></h6>
-                                                            <p class="mb-1 text-muted"><?= htmlspecialchars($job['company_name']) ?> - <?= htmlspecialchars($job['location']) ?></p>
-                                                            <small class="text-muted"><?= date('M j, Y', strtotime($job['created_at'])) ?></small>
+                                                            <p class="mb-1 text-muted">
+                                                                <?= htmlspecialchars($job['company_name'] ?? $job['company']) ?> - <?= htmlspecialchars($job['location']) ?>
+                                                                <?php if (isset($job['source'])): ?>
+                                                                    <span class="badge bg-info ms-2"><?= htmlspecialchars($job['source_display']) ?></span>
+                                                                <?php endif; ?>
+                                                            </p>
+                                                            <small class="text-muted">
+                                                                <?php if (isset($job['created_at'])): ?>
+                                                                    <?= date('M j, Y', strtotime($job['created_at'])) ?>
+                                                                <?php elseif (isset($job['posted_date'])): ?>
+                                                                    <?= date('M j, Y', strtotime($job['posted_date'])) ?>
+                                                                <?php endif; ?>
+                                                                <?php if (isset($job['salary']) && !empty($job['salary'])): ?>
+                                                                    • <?= htmlspecialchars($job['salary']) ?>
+                                                                <?php endif; ?>
+                                                                <?php if (isset($job['remote']) && $job['remote']): ?>
+                                                                    • <span class="text-success">Remote</span>
+                                                                <?php endif; ?>
+                                                            </small>
+                                                            <?php if (isset($job['description']) && !empty($job['description'])): ?>
+                                                                <p class="small text-muted mt-1"><?= htmlspecialchars(substr($job['description'], 0, 100)) ?><?= strlen($job['description']) > 100 ? '...' : '' ?></p>
+                                                            <?php endif; ?>
                                                         </div>
                                                         <div>
-                                                            <span class="badge <?= $job['is_active'] ? 'bg-success' : 'bg-secondary' ?>"><?= $job['is_active'] ? 'Active' : 'Inactive' ?></span>
-                                                            <div class="btn-group btn-group-sm mt-1">
-                                                                <form method="post" class="d-inline">
-                                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
-                                                                    <input type="hidden" name="action" value="job_toggle">
-                                                                    <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
-                                                                    <button class="btn btn-outline-secondary">Toggle</button>
-                                                                </form>
-                                                                <form method="post" class="d-inline" onsubmit="return confirm('Delete this job?')">
-                                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
-                                                                    <input type="hidden" name="action" value="job_delete">
-                                                                    <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
-                                                                    <button class="btn btn-outline-danger">Delete</button>
-                                                                </form>
-                                                            </div>
+                                                            <?php if (isset($job['is_active'])): ?>
+                                                                <span class="badge <?= $job['is_active'] ? 'bg-success' : 'bg-secondary' ?>"><?= $job['is_active'] ? 'Active' : 'Inactive' ?></span>
+                                                                <div class="btn-group btn-group-sm mt-1">
+                                                                    <form method="post" class="d-inline">
+                                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                                        <input type="hidden" name="action" value="job_toggle">
+                                                                        <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+                                                                        <button class="btn btn-outline-secondary">Toggle</button>
+                                                                    </form>
+                                                                    <form method="post" class="d-inline" onsubmit="return confirm('Delete this job?')">
+                                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::issueToken()) ?>">
+                                                                        <input type="hidden" name="action" value="job_delete">
+                                                                        <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+                                                                        <button class="btn btn-outline-danger">Delete</button>
+                                                                    </form>
+                                                                </div>
+                                                            <?php else: ?>
+                                                                <span class="badge bg-primary">API Job</span>
+                                                                <?php if (isset($job['url']) && !empty($job['url'])): ?>
+                                                                    <div class="mt-1">
+                                                                        <a href="<?= htmlspecialchars($job['url']) ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                                            <i class="bi bi-box-arrow-up-right me-1"></i>Apply
+                                                                        </a>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            <?php endif; ?>
                                                         </div>
                                                     </div>
                                                 </div>
