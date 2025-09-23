@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
     if ($auth->login($username, $password)) {
-        header('Location: /admin');
+        header('Location: /admin/dashboard.php');
         exit;
     }
     $error = 'Invalid credentials';
