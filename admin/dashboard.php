@@ -2,17 +2,20 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 use Content\Article;
 use Database\DB;
 use Database\MigrationRunner;
 use Security\Csrf;
 use Config\Settings;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
-if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
+$userAuth = new UserAuth();
+if (!$userAuth->check() || !$userAuth->user()->hasRole('admin')) { 
+    header('Location: /admin/login.php'); 
+    exit; 
+}
 
-$user = $auth->user();
+$user = $userAuth->user();
 $successMessage = '';
 $errorMessage = '';
 

@@ -2,10 +2,10 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
-if (!$auth->check()) { 
+$userAuth = new UserAuth();
+if (!$userAuth->check() || !$userAuth->user()->hasRole('admin')) { 
     header('Location: /admin/login.php'); 
     exit; 
 }

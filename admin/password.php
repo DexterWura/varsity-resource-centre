@@ -2,12 +2,15 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 use Database\DB;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
-if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
-$user = $auth->user();
+$userAuth = new UserAuth();
+if (!$userAuth->check() || !$userAuth->user()->hasRole('admin')) { 
+    header('Location: /admin/login.php'); 
+    exit; 
+}
+$user = $userAuth->user();
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current = (string)($_POST['current'] ?? '');

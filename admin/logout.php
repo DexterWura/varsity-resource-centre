@@ -2,12 +2,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
+$userAuth = new UserAuth();
 
 // Perform logout
-$auth->logout();
+$userAuth->logout();
 
 // Determine redirect message
 $message = 'logged_out=1';

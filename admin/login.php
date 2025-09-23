@@ -2,19 +2,19 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
+$userAuth = new UserAuth();
 
 // Handle logout
 if (isset($_GET['logout']) || isset($_POST['logout'])) {
-    $auth->logout();
+    $userAuth->logout();
     header('Location: /admin/login.php?logged_out=1');
     exit;
 }
 
-// If already logged in, redirect to dashboard
-if ($auth->check()) {
+// If already logged in and has admin role, redirect to dashboard
+if ($userAuth->check() && $userAuth->user()->hasRole('admin')) {
     header('Location: /admin/dashboard.php');
     exit;
 }
@@ -23,13 +23,21 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim((string)($_POST['username'] ?? ''));
+    $email = trim((string)($_POST['email'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
-    if ($auth->login($username, $password)) {
-        header('Location: /admin/dashboard.php');
-        exit;
+    
+    if ($userAuth->login($email, $password)) {
+        // Check if user has admin role
+        if ($userAuth->user()->hasRole('admin')) {
+            header('Location: /admin/dashboard.php');
+            exit;
+        } else {
+            $error = 'Access denied. Admin privileges required.';
+            $userAuth->logout(); // Log out non-admin users
+        }
+    } else {
+        $error = 'Invalid email or password.';
     }
-    $error = 'Invalid credentials';
 }
 
 // Check for logout message
@@ -56,8 +64,8 @@ if (isset($_GET['logged_out'])) {
             <?php if (!empty($success)): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
             <form method="post">
                 <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    <input class="form-control" name="username" required>
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Password</label>
