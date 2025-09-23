@@ -61,17 +61,20 @@ class User
             
             $userId = $pdo->lastInsertId();
             
-            // Assign default 'user' role
-            $stmt = $pdo->prepare('SELECT id FROM roles WHERE name = ?');
-            $stmt->execute(['user']);
-            $userRole = $stmt->fetch();
-            
-            if ($userRole) {
-                $stmt = $pdo->prepare('
-                    INSERT INTO user_roles (user_id, role_id) 
-                    VALUES (?, ?)
-                ');
-                $stmt->execute([$userId, $userRole['id']]);
+            // Assign default 'user' and 'writer' roles
+            $defaultRoles = ['user', 'writer'];
+            foreach ($defaultRoles as $roleName) {
+                $stmt = $pdo->prepare('SELECT id FROM roles WHERE name = ?');
+                $stmt->execute([$roleName]);
+                $role = $stmt->fetch();
+                
+                if ($role) {
+                    $stmt = $pdo->prepare('
+                        INSERT INTO user_roles (user_id, role_id) 
+                        VALUES (?, ?)
+                    ');
+                    $stmt->execute([$userId, $role['id']]);
+                }
             }
             
             return self::findById((int)$userId);
