@@ -88,6 +88,44 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			} else {
 				console.log('User dropdown not found - user may not be logged in');
 			}
+			
+			// Sticky Navigation Functionality
+			var navbar = document.querySelector('.navbar');
+			var body = document.body;
+			var lastScrollTop = 0;
+			var scrollThreshold = 100; // Pixels to scroll before navbar becomes sticky
+			
+			function handleScroll() {
+				var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+				
+				if (scrollTop > scrollThreshold) {
+					// Add sticky class
+					if (!navbar.classList.contains('sticky')) {
+						navbar.classList.add('sticky');
+						body.classList.add('navbar-sticky');
+					}
+				} else {
+					// Remove sticky class
+					if (navbar.classList.contains('sticky')) {
+						navbar.classList.remove('sticky');
+						body.classList.remove('navbar-sticky');
+					}
+				}
+				
+				lastScrollTop = scrollTop;
+			}
+			
+			// Throttle scroll events for better performance
+			var scrollTimeout;
+			window.addEventListener('scroll', function() {
+				if (scrollTimeout) {
+					clearTimeout(scrollTimeout);
+				}
+				scrollTimeout = setTimeout(handleScroll, 10);
+			});
+			
+			// Initial check
+			handleScroll();
 		});
 	</script>
 	<?php if ($settings->get('adsense_client')): ?>
@@ -95,6 +133,37 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<?php endif; ?>
 	<style>
 		:root{ --bs-primary: <?= htmlspecialchars($primaryColor) ?>; }
+		
+		/* Sticky Navigation */
+		.navbar {
+			transition: all 0.3s ease;
+			z-index: 1030;
+		}
+		
+		.navbar.sticky {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			background-color: rgba(255, 255, 255, 0.95) !important;
+			backdrop-filter: blur(10px);
+			-webkit-backdrop-filter: blur(10px);
+			box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+			border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+		}
+		
+		.navbar.sticky .navbar-brand {
+			font-size: 1.1rem;
+		}
+		
+		.navbar.sticky .nav-link {
+			padding: 0.4rem 0.8rem;
+		}
+		
+		/* Add padding to body when navbar is sticky */
+		body.navbar-sticky {
+			padding-top: 76px;
+		}
 		
 		/* User dropdown styling */
 		#userDropdown {
@@ -127,6 +196,22 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			padding: 0.75rem 1rem 0.5rem;
 			background-color: #f8f9fa;
 			border-bottom: 1px solid #dee2e6;
+		}
+		
+		/* Smooth scroll behavior */
+		html {
+			scroll-behavior: smooth;
+		}
+		
+		/* Mobile responsive adjustments */
+		@media (max-width: 991.98px) {
+			body.navbar-sticky {
+				padding-top: 70px;
+			}
+			
+			.navbar.sticky .navbar-brand {
+				font-size: 1rem;
+			}
 		}
 	</style>
 </head>

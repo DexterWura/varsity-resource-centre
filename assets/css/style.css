@@ -478,3 +478,72 @@ label {
         transform: translateY(0);
     }
 }
+
+/* Enhanced Sticky Navigation Styles */
+.navbar.sticky {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Smooth transitions for navbar elements */
+.navbar .nav-link {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--bs-primary);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.navbar .nav-link:hover::after {
+    width: 80%;
+}
+
+.navbar .nav-link.active::after {
+    width: 80%;
+}
+
+/* Enhanced navbar brand animation */
+.navbar-brand {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.05);
+}
+
+/* Mobile navbar improvements */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 10px;
+        margin-top: 10px;
+        padding: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .navbar.sticky .navbar-collapse {
+        background: rgba(255, 255, 255, 0.95);
+    }
+}
