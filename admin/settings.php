@@ -63,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'businesses' => isset($_POST['feature_businesses']),
                         'news' => isset($_POST['feature_news']),
                         'jobs' => isset($_POST['feature_jobs']),
+                        'plagiarism_checker' => isset($_POST['feature_plagiarism_checker']),
                     ]
                 ];
                 $settings->setMany($updates);
@@ -70,7 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update app config features
                 $appConfig = include __DIR__ . '/../storage/app.php';
                 $appConfig['features'] = $updates['features'];
-                file_put_contents(__DIR__ . '/../storage/app.php', '<?php' . PHP_EOL . 'return ' . var_export($appConfig, true) . ';');
                 
                 // Update job API settings
                 $jobAPIs = [
@@ -79,6 +79,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'arbeitnow' => isset($_POST['job_api_arbeitnow'])
                 ];
                 $settings->set('job_apis', $jobAPIs);
+                
+                // Update plagiarism API settings
+                $plagiarismAPIs = [
+                    'copyleaks' => isset($_POST['plagiarism_api_copyleaks']),
+                    'quetext' => isset($_POST['plagiarism_api_quetext']),
+                    'smallseotools' => isset($_POST['plagiarism_api_smallseotools']),
+                    'plagiarism_detector' => isset($_POST['plagiarism_api_plagiarism_detector']),
+                    'duplichecker' => isset($_POST['plagiarism_api_duplichecker'])
+                ];
+                $appConfig['plagiarism_apis'] = $plagiarismAPIs;
+                
+                // Save updated app config
+                file_put_contents(__DIR__ . '/../storage/app.php', '<?php' . PHP_EOL . 'return ' . var_export($appConfig, true) . ';');
                 
                 $successMessage = 'Settings updated successfully.';
             }
@@ -312,6 +325,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <label class="form-check-label">Job Postings</label>
                                         </div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="feature_plagiarism_checker" <?= ($features['plagiarism_checker'] ?? false) ? 'checked' : '' ?>>
+                                            <label class="form-check-label">Pro Plagiarism Checker</label>
+                                        </div>
+                                    </div>
                                 </div>
 			</div>
 			</div>
@@ -337,6 +356,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     <label class="form-check-label fw-bold"><?= htmlspecialchars($apiInfo['name']) ?></label>
                                                 </div>
                                                 <p class="small text-muted mb-2"><?= htmlspecialchars($apiInfo['description']) ?></p>
+                                                <div class="small">
+                                                    <strong>Features:</strong>
+                                                    <ul class="mb-0">
+                                                        <?php foreach ($apiInfo['features'] as $feature): ?>
+                                                            <li><?= htmlspecialchars($feature) ?></li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </div>
+                                                <a href="<?= htmlspecialchars($apiInfo['website']) ?>" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                    <i class="bi bi-box-arrow-up-right me-1"></i>Visit Website
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plagiarism Checker API Settings -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-search me-2"></i>Plagiarism Checker APIs</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">Select which plagiarism detection APIs to use. Multiple APIs provide better coverage and accuracy.</p>
+                                <div class="row g-3">
+                                    <?php 
+                                    $plagiarismAPIs = [
+                                        'copyleaks' => [
+                                            'name' => 'Copyleaks',
+                                            'description' => 'Professional plagiarism detection with high accuracy',
+                                            'features' => ['High accuracy', 'Multiple languages', 'API access'],
+                                            'website' => 'https://copyleaks.com',
+                                            'free_limit' => '200 chars'
+                                        ],
+                                        'quetext' => [
+                                            'name' => 'Quetext',
+                                            'description' => 'Advanced plagiarism checker with deep search',
+                                            'features' => ['Deep search', 'Citation assistant', 'Color-coded results'],
+                                            'website' => 'https://quetext.com',
+                                            'free_limit' => '500 chars'
+                                        ],
+                                        'smallseotools' => [
+                                            'name' => 'Small SEO Tools',
+                                            'description' => 'Free plagiarism checker with good coverage',
+                                            'features' => ['Free tier', 'Multiple sources', 'Easy integration'],
+                                            'website' => 'https://smallseotools.com',
+                                            'free_limit' => '1000 words'
+                                        ],
+                                        'plagiarism_detector' => [
+                                            'name' => 'Plagiarism Detector',
+                                            'description' => 'Comprehensive plagiarism detection service',
+                                            'features' => ['Multiple databases', 'Real-time checking', 'Detailed reports'],
+                                            'website' => 'https://plagiarism-detector.com',
+                                            'free_limit' => '1000 words'
+                                        ],
+                                        'duplichecker' => [
+                                            'name' => 'Duplichecker',
+                                            'description' => 'Fast and reliable plagiarism detection',
+                                            'features' => ['Fast processing', 'Multiple formats', 'Bulk checking'],
+                                            'website' => 'https://duplichecker.com',
+                                            'free_limit' => '1000 words'
+                                        ]
+                                    ];
+                                    
+                                    $plagiarismAPIsConfig = $siteConfig['plagiarism_apis'] ?? [];
+                                    
+                                    foreach ($plagiarismAPIs as $apiKey => $apiInfo): 
+                                    ?>
+                                    <div class="col-md-6">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <div class="form-check form-switch mb-2">
+                                                    <input class="form-check-input" type="checkbox" name="plagiarism_api_<?= $apiKey ?>" 
+                                                           <?= ($plagiarismAPIsConfig[$apiKey] ?? false) ? 'checked' : '' ?>>
+                                                    <label class="form-check-label fw-bold"><?= htmlspecialchars($apiInfo['name']) ?></label>
+                                                </div>
+                                                <p class="small text-muted mb-2"><?= htmlspecialchars($apiInfo['description']) ?></p>
+                                                <div class="small mb-2">
+                                                    <strong>Free Limit:</strong> <?= htmlspecialchars($apiInfo['free_limit']) ?>
+                                                </div>
                                                 <div class="small">
                                                     <strong>Features:</strong>
                                                     <ul class="mb-0">

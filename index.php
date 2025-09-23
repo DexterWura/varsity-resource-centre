@@ -42,6 +42,31 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
                             <?php if (($siteConfig['features']['houses'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/houses.php" class="category-pill pill-animate">Accommodation</a><?php endif; ?>
                             <?php if (($siteConfig['features']['articles'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/articles.php" class="category-pill pill-animate">Articles</a><?php endif; ?>
                             <?php if (($siteConfig['features']['news'] ?? true)): ?><a href="<?= htmlspecialchars($base) ?>/news.php" class="category-pill pill-animate">News</a><?php endif; ?>
+                            
+                            <!-- Tools Dropdown -->
+                            <div class="dropdown d-inline-block">
+                                <a class="category-pill pill-animate dropdown-toggle" href="#" role="button" id="toolsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fa-solid fa-tools me-1"></i>Tools
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="toolsDropdown">
+                                    <?php if (($siteConfig['features']['timetable'] ?? true)): ?>
+                                    <li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/timetable.php">
+                                        <i class="fa-regular fa-calendar me-2"></i>Timetable
+                                    </a></li>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (($siteConfig['features']['plagiarism_checker'] ?? false)): ?>
+                                    <li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
+                                        <i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
+                                    </a></li>
+                                    <?php endif; ?>
+                                    
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
+                                        <i class="fa-regular fa-file-lines me-2"></i>Resume Builder
+                                    </a></li>
+                                </ul>
+                            </div>
                         </div>
                     </form>
                 </div>
