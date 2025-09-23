@@ -114,20 +114,102 @@ try {
             display: inline-block;
         }
     </style>
+        :root {
+            --dash-bg: #f8f9fb;
+            --dash-card: #ffffff;
+            --dash-text: #212529;
+            --dash-muted: #6c757d;
+            --dash-accent: #7367f0;
+            --dash-border: #e9ecef;
+            --dash-sidebar: #0f1521;
+            --dash-sidebar-text: #cfd6dd;
+            --dash-sidebar-active: #1a2335;
+        }
+        [data-theme="dark"] {
+            --dash-bg: #0f1521;
+            --dash-card: #121a2a;
+            --dash-text: #e9ecef;
+            --dash-muted: #aab1b9;
+            --dash-accent: #7367f0;
+            --dash-border: #243147;
+            --dash-sidebar: #0f1521;
+            --dash-sidebar-text: #cfd6dd;
+            --dash-sidebar-active: #1a2335;
+        }
+        body { background: var(--dash-bg); color: var(--dash-text); }
+        .sidebar { min-height: 100vh; background: var(--dash-sidebar); transition: all 0.3s ease; }
+        .sidebar .nav-link { color: var(--dash-sidebar-text); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; transition: all 0.3s ease; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: var(--dash-sidebar-active); transform: translateX(5px); }
+        .sidebar .nav-link i { width: 20px; text-align: center; }
+        .main-content { background: var(--dash-bg); min-height: 100vh; }
+        .card { background: var(--dash-card); border: 1px solid var(--dash-border); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .text-muted { color: var(--dash-muted) !important; }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -250px;
+                z-index: 1000;
+                width: 250px;
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container py-4">
+<body>
+    <div class="container-fluid">
         <div class="row">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="mb-1">Role Management</h2>
-                        <p class="text-muted">Manage your roles and permissions</p>
+            <nav class="col-md-3 col-lg-2 px-0 sidebar" id="sidebar">
+                <div class="p-3">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="bi bi-mortarboard-fill text-white fs-3 me-2"></i>
+                        <span class="text-white fw-bold" id="brand-text">VRC</span>
+                        <button class="btn btn-sm btn-outline-light ms-auto" id="dashThemeToggle" title="Toggle theme"><i class="bi bi-moon"></i></button>
                     </div>
-                    <a href="dashboard.php" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php">
+                                <i class="bi bi-house-door"></i>
+                                <span class="ms-2">Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="user_roles.php">
+                                <i class="bi bi-shield-check"></i>
+                                <span class="ms-2">Roles</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="mt-auto p-3">
+                    <a href="logout.php" class="nav-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="ms-2">Logout</span>
                     </a>
                 </div>
+            </nav>
+
+            <main class="col-md-9 col-lg-10 main-content">
+                <div class="p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="mb-1">Role Management</h2>
+                            <p class="text-muted">Manage your roles and permissions</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-primary d-md-none" id="sidebarToggle">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            <a href="dashboard.php" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
 
                 <?php if ($message): ?>
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -143,7 +225,7 @@ try {
                     </div>
                 <?php endif; ?>
 
-                <!-- Current Roles -->
+                    <!-- Current Roles -->
                 <div class="card role-card mb-4">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Your Current Roles</h5>
@@ -202,7 +284,7 @@ try {
                     </div>
                 </div>
 
-                <!-- Available Roles -->
+                    <!-- Available Roles -->
                 <?php if (!empty($availableRoles)): ?>
                     <div class="card role-card">
                         <div class="card-header bg-success text-white">
@@ -253,10 +335,27 @@ try {
                         </div>
                     </div>
                 <?php endif; ?>
-            </div>
+                </div>
+            </main>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function(){
+            try { var t = localStorage.getItem('dash-theme'); if (t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e) {}
+        })();
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+        document.getElementById('dashThemeToggle')?.addEventListener('click', function(){
+            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+            try { localStorage.setItem('dash-theme', isDark ? 'light' : 'dark'); } catch(e) {}
+        });
+    </script>
 </body>
 </html>
