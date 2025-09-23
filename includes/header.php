@@ -235,7 +235,7 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 									<i class="fa-solid fa-tachometer-alt me-2"></i>Dashboard
 								</a></li>
 								<?php endif; ?>
-								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/profile.php">
+								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/user_roles.php">
 									<i class="fa-solid fa-user-cog me-2"></i>Profile
 								</a></li>
 								<li><hr class="dropdown-divider"></li>
