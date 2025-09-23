@@ -82,8 +82,26 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
 				console.log('Tools dropdown found in official site');
+				
+				// Check if dropdown menu exists
+				var dropdownMenu = toolsDropdown.nextElementSibling;
+				if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+					console.log('Dropdown menu found:', dropdownMenu);
+				} else {
+					console.log('Dropdown menu NOT found or incorrect structure');
+				}
+				
 				toolsDropdown.addEventListener('click', function(e) {
 					console.log('Tools dropdown clicked in official site');
+					
+					// Check dropdown menu classes after click
+					setTimeout(function() {
+						if (dropdownMenu) {
+							console.log('Dropdown menu classes after click:', dropdownMenu.className);
+							console.log('Dropdown menu style.display:', dropdownMenu.style.display);
+							console.log('Dropdown menu computed style:', window.getComputedStyle(dropdownMenu).display);
+						}
+					}, 100);
 				});
 			} else {
 				console.log('Tools dropdown NOT found in official site');
@@ -133,6 +151,25 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<?php endif; ?>
 	<style>
 		:root{ --bs-primary: <?= htmlspecialchars($primaryColor) ?>; }
+		
+		/* Temporary debugging styles */
+		.dropdown-menu {
+			z-index: 9999 !important;
+			position: absolute !important;
+			display: block !important;
+			visibility: visible !important;
+			opacity: 1 !important;
+			background: white !important;
+			border: 2px solid red !important;
+		}
+		
+		#toolsDropdown + .dropdown-menu {
+			display: none !important;
+		}
+		
+		#toolsDropdown + .dropdown-menu.show {
+			display: block !important;
+		}
 	</style>
 </head>
 <body>
