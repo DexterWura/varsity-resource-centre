@@ -1062,18 +1062,29 @@ try {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
                 const section = this.getAttribute('data-section');
-                
-                // Hide all sections
-                document.querySelectorAll('[id$="-section"]').forEach(s => s.style.display = 'none');
-                
-                // Show selected section
-                document.getElementById(section + '-section').style.display = 'block';
-                
-                // Update active nav link
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
+                showSection(section);
             });
         });
+        
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('[id$="-section"]').forEach(s => s.style.display = 'none');
+            
+            // Show selected section
+            document.getElementById(section + '-section').style.display = 'block';
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+        }
+        
+        // Handle URL hash on page load
+        if (window.location.hash) {
+            const section = window.location.hash.substring(1); // Remove the #
+            if (section && document.getElementById(section + '-section')) {
+                showSection(section);
+            }
+        }
     </script>
 </body>
 </html>
