@@ -219,11 +219,48 @@ class Article
                 SELECT a.*, u.full_name as author_name 
                 FROM articles a 
                 JOIN users u ON a.author_id = u.id 
-                WHERE a.status IN ("submitted", "under_review") 
+                WHERE a.status = "submitted" 
                 ORDER BY a.created_at ASC 
                 LIMIT ? OFFSET ?
             ');
             $stmt->execute([$limit, $offset]);
+            return $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public function assignToReviewer(int $reviewerId): bool
+    {
+        try {
+            $pdo = DB::pdo();
+            $stmt = $pdo->prepare('
+                UPDATE articles SET 
+                    status = "under_review", 
+                    reviewer_id = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = "submitted"
+            ');
+            $stmt->execute([$reviewerId, $this->getId()]);
+            return $stmt->rowCount() > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    public static function getAssignedToReviewer(int $reviewerId, int $limit = 10, int $offset = 0): array
+    {
+        try {
+            $pdo = DB::pdo();
+            $stmt = $pdo->prepare('
+                SELECT a.*, u.full_name as author_name 
+                FROM articles a 
+                JOIN users u ON a.author_id = u.id 
+                WHERE a.reviewer_id = ? AND a.status = "under_review"
+                ORDER BY a.updated_at ASC 
+                LIMIT ? OFFSET ?
+            ');
+            $stmt->execute([$reviewerId, $limit, $offset]);
             return $stmt->fetchAll();
         } catch (\Throwable $e) {
             return [];

@@ -39,20 +39,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$title = trim($_POST['title'] ?? '');
 				$content = trim($_POST['content'] ?? '');
 				$excerpt = trim($_POST['excerpt'] ?? '');
+				
+				// Determine if this is a draft or submit action
+				$isDraft = isset($_POST['save_draft']);
+				$isSubmit = isset($_POST['submit_for_review']);
+				
 				if ($title === '' || $content === '') {
 					throw new \RuntimeException('Title and content are required.');
 				}
+				
+				$status = $isSubmit ? 'submitted' : 'draft';
 				$created = Article::create([
 					'title' => $title,
 					'content' => $content,
 					'excerpt' => $excerpt,
 					'author_id' => $user->getId(),
-					'status' => 'draft'
+					'status' => $status
 				]);
 				if (!$created) {
 					throw new \RuntimeException('Failed to create article.');
 				}
-				$successMessage = 'Article saved as draft.';
+				$successMessage = $isSubmit ? 'Article submitted for review.' : 'Article saved as draft.';
 			} elseif ($action === 'article_submit') {
 				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
 				$userAuth->requirePermission('write_articles');
@@ -84,14 +91,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 					throw new \RuntimeException('Failed to update article.');
 				}
 				$successMessage = 'Article updated.';
+			} elseif ($action === 'article_assign') {
+				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
+				if (!$user->hasPermission('review_articles') && !$user->hasPermission('admin')) {
+					throw new \RuntimeException('You do not have permission to review articles.');
+				}
+				$articleId = (int)($_POST['article_id'] ?? 0);
+				$article = Article::findById($articleId);
+				if (!$article) {
+					throw new \RuntimeException('Article not found.');
+				}
+				if (!$article->assignToReviewer($user->getId())) {
+					throw new \RuntimeException('Failed to assign article for review. It may have already been assigned to another reviewer.');
+				}
+				$successMessage = 'Article assigned to you for review.';
 			} elseif ($action === 'article_approve' || $action === 'article_reject') {
 				if (!($features['articles'] ?? true)) { throw new \RuntimeException('Articles are disabled.'); }
-				$userAuth->requirePermission('review_articles');
+				if (!$user->hasPermission('review_articles') && !$user->hasPermission('admin')) {
+					throw new \RuntimeException('You do not have permission to review articles.');
+				}
 				$articleId = (int)($_POST['article_id'] ?? 0);
 				$notes = trim($_POST['notes'] ?? '');
 				$article = Article::findById($articleId);
 				if (!$article) {
 					throw new \RuntimeException('Article not found.');
+				}
+				// Check if the current user is the assigned reviewer
+				if ($article->getReviewerId() !== $user->getId()) {
+					throw new \RuntimeException('You are not assigned to review this article.');
 				}
 				$ok = $action === 'article_approve'
 					? $article->approve($user->getId(), $notes)
@@ -676,7 +703,10 @@ try {
 												<label class="form-label">Excerpt (optional)</label>
 												<textarea name="excerpt" rows="2" class="form-control" placeholder="Short summary"></textarea>
 											</div>
-											<button class="btn btn-primary" type="submit">Save Draft</button>
+											<div class="d-flex gap-2">
+												<button class="btn btn-outline-secondary" type="submit" name="save_draft">Save Draft</button>
+												<button class="btn btn-primary" type="submit" name="submit_for_review">Submit for Review</button>
+											</div>
 										</form>
 									</div>
 								</div>
@@ -771,20 +801,72 @@ try {
 						</div>
 						<?php endif; ?>
 
-					<?php if (($features['articles'] ?? true) && $user->hasPermission('review_articles')): ?>
+					<?php if (($features['articles'] ?? true) && ($user->hasPermission('review_articles') || $user->hasPermission('admin'))): ?>
 					<div id="review-section" style="display: none;">
 						<?php
 							$csrfToken = Csrf::issueToken();
 							$pending = Article::getForReview(50, 0);
+							$assigned = Article::getAssignedToReviewer($user->getId(), 50, 0);
 						?>
+						
+						<!-- Assigned Articles -->
+						<?php if (!empty($assigned)): ?>
+						<div class="card mb-4">
+							<div class="card-header d-flex justify-content-between align-items-center">
+								<h5 class="mb-0">Your Assigned Articles</h5>
+								<span class="text-muted small"><?= count($assigned) ?> assigned</span>
+							</div>
+							<div class="card-body">
+								<div class="table-responsive">
+									<table class="table align-middle">
+										<thead>
+											<tr>
+												<th>Title</th>
+												<th>Author</th>
+												<th>Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											<?php foreach ($assigned as $a): ?>
+												<tr>
+													<td class="text-truncate" style="max-width:320px;" title="<?= htmlspecialchars($a['title']) ?>"><?= htmlspecialchars($a['title']) ?></td>
+													<td><?= htmlspecialchars($a['author_name'] ?? 'Author') ?></td>
+													<td class="d-flex gap-2">
+														<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#assigned-<?= (int)$a['id'] ?>">Review</button>
+													</td>
+												</tr>
+												<tr class="collapse" id="assigned-<?= (int)$a['id'] ?>">
+													<td colspan="3">
+														<div class="mb-2">
+															<div class="fw-semibold mb-1">Content</div>
+															<div class="border rounded p-2" style="white-space: pre-wrap;"><?= nl2br(htmlspecialchars($a['content'])) ?></div>
+														</div>
+														<form method="post" class="d-flex gap-2">
+															<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+															<input type="hidden" name="article_id" value="<?= (int)$a['id'] ?>">
+															<input name="notes" class="form-control" placeholder="Review notes (optional)">
+															<button name="action" value="article_reject" class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+															<button name="action" value="article_approve" class="btn btn-sm btn-success" type="submit">Approve & Publish</button>
+														</form>
+													</td>
+												</tr>
+											<?php endforeach; ?>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+						<?php endif; ?>
+
+						<!-- Available Articles -->
 						<div class="card">
 							<div class="card-header d-flex justify-content-between align-items-center">
-								<h5 class="mb-0">Articles Awaiting Review</h5>
+								<h5 class="mb-0">Available Articles for Review</h5>
 								<span class="text-muted small"><?= count($pending) ?> pending</span>
 							</div>
 							<div class="card-body">
 								<?php if (empty($pending)): ?>
-									<p class="text-muted mb-0">No articles to review.</p>
+									<p class="text-muted mb-0">No articles available for review.</p>
 								<?php else: ?>
 									<div class="table-responsive">
 										<table class="table align-middle">
@@ -801,22 +883,20 @@ try {
 														<td class="text-truncate" style="max-width:320px;" title="<?= htmlspecialchars($p['title']) ?>"><?= htmlspecialchars($p['title']) ?></td>
 														<td><?= htmlspecialchars($p['author_name'] ?? 'Author') ?></td>
 														<td class="d-flex gap-2">
-															<button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#rev-<?= (int)$p['id'] ?>">Review</button>
-														</td>
-													</tr>
-													<tr class="collapse" id="rev-<?= (int)$p['id'] ?>">
-														<td colspan="3">
-															<div class="mb-2">
-																<div class="fw-semibold mb-1">Content</div>
-																<div class="border rounded p-2" style="white-space: pre-wrap;"><?= nl2br(htmlspecialchars($p['content'])) ?></div>
-															</div>
-															<form method="post" class="d-flex gap-2">
+															<button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#preview-<?= (int)$p['id'] ?>">Preview</button>
+															<form method="post" class="d-inline">
 																<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 																<input type="hidden" name="article_id" value="<?= (int)$p['id'] ?>">
-																<input name="notes" class="form-control" placeholder="Review notes (optional)">
-																<button name="action" value="article_reject" class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
-																<button name="action" value="article_approve" class="btn btn-sm btn-primary" type="submit">Approve & Publish</button>
+																<button name="action" value="article_assign" class="btn btn-sm btn-primary" type="submit">Take for Review</button>
 															</form>
+														</td>
+													</tr>
+													<tr class="collapse" id="preview-<?= (int)$p['id'] ?>">
+														<td colspan="3">
+															<div class="mb-2">
+																<div class="fw-semibold mb-1">Content Preview</div>
+																<div class="border rounded p-2" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto;"><?= nl2br(htmlspecialchars($p['content'])) ?></div>
+															</div>
 														</td>
 													</tr>
 												<?php endforeach; ?>
