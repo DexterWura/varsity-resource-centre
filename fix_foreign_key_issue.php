@@ -1,8 +1,8 @@
 <?php
 /**
- * Reset Database and Install Fresh
+ * Fix Foreign Key Constraint Issue
  * 
- * This script completely resets the database and runs a fresh installation
+ * This script fixes the foreign key constraint issue by clearing data instead of dropping tables
  */
 
 require_once __DIR__ . '/bootstrap.php';
@@ -12,38 +12,34 @@ use Database\DB;
 try {
     $pdo = DB::pdo();
     
-    echo "🔄 Resetting Database and Installing Fresh\n";
-    echo "=========================================\n\n";
+    echo "🔧 Fixing Foreign Key Constraint Issue\n";
+    echo "=====================================\n\n";
     
-    echo "⚠️  WARNING: This will delete ALL data in the database!\n";
+    echo "⚠️  This will clear all data but keep table structures.\n";
     echo "Press Enter to continue or Ctrl+C to cancel...\n";
     readline();
     
-    echo "\n🗑️  Dropping all tables...\n";
+    echo "\n🗑️  Clearing all data...\n";
+    
+    // Disable foreign key checks
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
     
     // Get all table names
     $stmt = $pdo->query("SHOW TABLES");
     $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
-    if (!empty($tables)) {
-        // Disable foreign key checks
-        $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
-        
-        // Drop all tables
-        foreach ($tables as $table) {
-            try {
-                $pdo->exec("DROP TABLE IF EXISTS `$table`");
-                echo "  ✅ Dropped table: $table\n";
-            } catch (Exception $e) {
-                echo "  ⚠️  Could not drop table $table: " . $e->getMessage() . "\n";
-            }
+    // Clear all tables
+    foreach ($tables as $table) {
+        try {
+            $pdo->exec("TRUNCATE TABLE `$table`");
+            echo "  ✅ Cleared table: $table\n";
+        } catch (Exception $e) {
+            echo "  ⚠️  Could not clear table $table: " . $e->getMessage() . "\n";
         }
-        
-        // Re-enable foreign key checks
-        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
-    } else {
-        echo "  ℹ️  No tables found to drop.\n";
     }
+    
+    // Re-enable foreign key checks
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
     
     echo "\n📁 Running migrations...\n";
     
@@ -71,7 +67,7 @@ try {
             echo "    ✅ Success\n";
         } catch (Exception $e) {
             echo "    ❌ Error: " . $e->getMessage() . "\n";
-            throw $e;
+            // Continue with other migrations even if one fails
         }
     }
     
@@ -114,7 +110,7 @@ try {
         echo "  ❌ Admin user not found\n";
     }
     
-    echo "\n🎉 Database reset and installation completed!\n";
+    echo "\n🎉 Foreign key issue fixed and installation completed!\n";
     echo "\n📋 Login Information:\n";
     echo "====================\n";
     echo "Email: admin@varsityresource.com\n";

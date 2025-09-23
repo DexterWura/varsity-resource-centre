@@ -1,11 +1,7 @@
--- Fix user_roles table structure
--- This migration ensures the user_roles table has the correct structure
+-- Create user_roles table if it doesn't exist
+-- This migration creates the user_roles table for user-role assignments
 
--- Drop the existing user_roles table if it exists (it might have wrong structure)
-DROP TABLE IF EXISTS user_roles;
-
--- Recreate user_roles table with correct structure
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   role_id INT NOT NULL,
@@ -15,7 +11,7 @@ CREATE TABLE user_roles (
   UNIQUE KEY unique_user_role (user_id, role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Reassign admin role to admin user
+-- Assign admin role to admin user (if not already assigned)
 INSERT IGNORE INTO user_roles (user_id, role_id) 
 SELECT u.id, r.id 
 FROM users u, roles r 
