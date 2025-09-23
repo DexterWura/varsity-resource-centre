@@ -1016,107 +1016,113 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Theme toggle functionality
-        const themeToggle = document.getElementById('dashThemeToggle');
-        const body = document.body;
-        
-        // Load saved theme
-        const savedTheme = localStorage.getItem('admin-theme') || 'light';
-        body.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
-        
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('admin-theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-        
-        function updateThemeIcon(theme) {
-            const icon = themeToggle.querySelector('i');
-            icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
-        }
-        
-        // Sidebar toggle for mobile
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.getElementById('sidebar');
-        
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing admin dashboard...');
+            // Theme toggle functionality
+            const themeToggle = document.getElementById('dashThemeToggle');
+            const body = document.body;
+            
+            // Load saved theme
+            const savedTheme = localStorage.getItem('admin-theme') || 'light';
+            body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+            
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = body.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                body.setAttribute('data-theme', newTheme);
+                localStorage.setItem('admin-theme', newTheme);
+                updateThemeIcon(newTheme);
             });
-        }
-        
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768) {
-                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
-                    sidebar.classList.remove('show');
-                }
+            
+            function updateThemeIcon(theme) {
+                const icon = themeToggle.querySelector('i');
+                icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
             }
-        });
+            
+            // Sidebar toggle for mobile
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('show');
+                });
+            }
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768) {
+                    if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                        sidebar.classList.remove('show');
+                    }
+                }
+            });
 
-        // Section navigation
-        document.querySelectorAll('[data-section]').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const section = this.getAttribute('data-section');
-                showSection(section);
-            });
-        });
-        
-        function showSection(section) {
-            console.log('showSection called with:', section); // Debug log
-            
-            // Hide all sections
-            document.querySelectorAll('[id$="-section"]').forEach(s => {
-                s.style.display = 'none';
-                console.log('Hiding section:', s.id); // Debug log
-            });
-            
-            // Show selected section
-            const targetSection = document.getElementById(section + '-section');
-            if (targetSection) {
-                targetSection.style.display = 'block';
-                console.log('Showing section:', section + '-section'); // Debug log
-            } else {
-                console.error('Section not found:', section + '-section'); // Debug log
-            }
-            
-            // Update active nav link
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            const activeLink = document.querySelector(`[data-section="${section}"]`);
-            if (activeLink) {
-                activeLink.classList.add('active');
-                console.log('Activated nav link for:', section); // Debug log
-            } else {
-                console.error('Nav link not found for:', section); // Debug log
-            }
-        }
-        
-        // Handle URL hash on page load
-        function handleHashNavigation() {
-            if (window.location.hash) {
-                const section = window.location.hash.substring(1); // Remove the #
-                console.log('Hash detected:', section); // Debug log
-                if (section && document.getElementById(section + '-section')) {
-                    console.log('Showing section:', section); // Debug log
+            // Section navigation
+            document.querySelectorAll('[data-section]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const section = this.getAttribute('data-section');
                     showSection(section);
+                });
+            });
+            
+            function showSection(section) {
+                console.log('showSection called with:', section);
+                
+                // Hide all sections
+                document.querySelectorAll('[id$="-section"]').forEach(s => {
+                    s.style.display = 'none';
+                    console.log('Hiding:', s.id);
+                });
+                
+                // Show selected section
+                const targetSection = document.getElementById(section + '-section');
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                    console.log('Showing:', section + '-section');
                 } else {
-                    console.log('Section not found:', section + '-section'); // Debug log
+                    console.error('Section not found:', section + '-section');
                 }
-            } else {
-                // Default to dashboard section
-                showSection('dashboard');
+                
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                const activeLink = document.querySelector(`[data-section="${section}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                    console.log('Activated nav link:', section);
+                } else {
+                    console.error('Nav link not found:', section);
+                }
             }
-        }
-        
-        // Run on page load
-        handleHashNavigation();
-        
-        // Also listen for hash changes
-        window.addEventListener('hashchange', handleHashNavigation);
+            
+            // Handle URL hash on page load
+            function handleHashNavigation() {
+                console.log('handleHashNavigation called, hash:', window.location.hash);
+                if (window.location.hash) {
+                    const section = window.location.hash.substring(1); // Remove the #
+                    console.log('Hash section:', section);
+                    if (section && document.getElementById(section + '-section')) {
+                        console.log('Found section, showing:', section);
+                        showSection(section);
+                    } else {
+                        console.error('Section not found for hash:', section);
+                    }
+                } else {
+                    console.log('No hash, showing dashboard');
+                    // Default to dashboard section
+                    showSection('dashboard');
+                }
+            }
+            
+            // Run on page load
+            handleHashNavigation();
+            
+            // Also listen for hash changes
+            window.addEventListener('hashchange', handleHashNavigation);
+        });
     </script>
 </body>
 </html>
