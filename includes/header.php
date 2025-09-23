@@ -191,16 +191,10 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 			transition: all 0.3s ease;
 		}
 		
+		/* Tools dropdown styling - minimal interference with Bootstrap */
 		#toolsDropdown:hover {
 			background-color: rgba(0,0,0,0.1);
 			border-radius: 5px;
-		}
-		
-		/* Tools dropdown styling - minimal interference with Bootstrap */
-		#toolsDropdown .dropdown-menu {
-			border: none;
-			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-			border-radius: 8px;
 		}
 		
 		/* Smooth scroll behavior */
@@ -222,14 +216,14 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 </head>
 <body>
 	<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
-		<div class="container">
+		<div class="container-fluid">
 			<a class="navbar-brand fw-semibold" href="<?= htmlspecialchars($base) ?>/index.php">
 				<i class="fa-solid fa-graduation-cap me-2"></i><?= htmlspecialchars($siteName) ?>
 			</a>
-			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#vrcNav" aria-controls="vrcNav" aria-expanded="false" aria-label="Toggle navigation">
+			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
 			</button>
-			<div class="collapse navbar-collapse" id="vrcNav">
+			<div class="collapse navbar-collapse" id="navbarSupportedContent">
 				<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
 					<li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/index.php">Home</a></li>
 					<?php if (($siteConfig['features']['houses'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/houses.php">Houses</a></li><?php endif; ?>
@@ -240,20 +234,27 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 					
 					<!-- Tools Dropdown -->
 					<li class="nav-item dropdown">
-						<a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+						<a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button"
+						   data-bs-toggle="dropdown" aria-expanded="false">
 							<i class="fa-solid fa-tools me-1"></i>Tools
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="toolsDropdown">
-							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/timetable.php">
-								<i class="fa-regular fa-calendar me-2"></i>Timetable
-							</a></li>
-							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
-								<i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
-							</a></li>
+							<li>
+								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/timetable.php">
+									<i class="fa-regular fa-calendar me-2"></i>Timetable
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/plagiarism-checker.php">
+									<i class="fa-solid fa-search me-2"></i>Pro Plagiarism Checker
+								</a>
+							</li>
 							<li><hr class="dropdown-divider"></li>
-							<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
-								<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
-							</a></li>
+							<li>
+								<a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/resume.php">
+									<i class="fa-regular fa-file-lines me-2"></i>Resume Builder
+								</a>
+							</li>
 						</ul>
 					</li>
 					
