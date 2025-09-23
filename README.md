@@ -24,6 +24,7 @@ Now includes: web installer, database support (admins, notifications), logging, 
 
 **If installation fails with migration errors:**
 - Run `php fix_migration_conflicts.php` to diagnose issues
+- Run `php fix_duplicate_university.php` to fix duplicate university codes
 - Run `php reset_database.php` to start with clean database (WARNING: deletes all data)
 - Check `storage/logs/app.log` for detailed error messages
 
