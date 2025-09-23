@@ -75,6 +75,16 @@ try {
     error_log('Available roles query error: ' . $e->getMessage());
     // Handle error silently for available roles
 }
+
+// Feature flags
+$siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : [];
+$features = $siteConfig['features'] ?? [
+    'articles' => true,
+    'houses' => true,
+    'businesses' => true,
+    'news' => true,
+    'jobs' => true,
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -109,12 +119,15 @@ try {
         }
         body { background: var(--dash-bg); color: var(--dash-text); }
         .sidebar { min-height: 100vh; background: var(--dash-sidebar); transition: all 0.3s ease; }
+        .sidebar.collapsed { width: 70px; }
         .sidebar .nav-link { color: var(--dash-sidebar-text); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; transition: all 0.3s ease; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: var(--dash-sidebar-active); transform: translateX(5px); }
         .sidebar .nav-link i { width: 20px; text-align: center; }
         .main-content { background: var(--dash-bg); min-height: 100vh; }
-        .card { background: var(--dash-card); border: 1px solid var(--dash-border); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        .card { background: var(--dash-card); border: 1px solid var(--dash-border); border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease; }
+        .card:hover { transform: translateY(-5px); }
         .text-muted { color: var(--dash-muted) !important; }
+        .btn-theme { border: 1px solid var(--dash-border); color: var(--dash-text); }
         .role-card {
             border: none;
             border-radius: 15px;
@@ -172,13 +185,15 @@ try {
 <body>
     <div class="container-fluid">
         <div class="row">
+            <!-- Sidebar -->
             <nav class="col-md-3 col-lg-2 px-0 sidebar" id="sidebar">
                 <div class="p-3">
                     <div class="d-flex align-items-center mb-4">
                         <i class="bi bi-mortarboard-fill text-white fs-3 me-2"></i>
                         <span class="text-white fw-bold" id="brand-text">VRC</span>
-                        <button class="btn btn-sm btn-outline-light ms-auto" id="dashThemeToggle" title="Toggle theme"><i class="bi bi-moon"></i></button>
+                        <button class="btn btn-sm btn-theme ms-auto" id="dashThemeToggle" title="Toggle theme"><i class="bi bi-moon"></i></button>
                     </div>
+                    
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link" href="dashboard.php">
@@ -187,13 +202,52 @@ try {
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php#profile">
+                                <i class="bi bi-person"></i>
+                                <span class="ms-2">Profile</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link active" href="user_roles.php">
                                 <i class="bi bi-shield-check"></i>
                                 <span class="ms-2">Roles</span>
                             </a>
                         </li>
+                        <?php if (($features['articles'] ?? true) && $user->hasPermission('write_articles')): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php#articles">
+                                <i class="bi bi-file-text"></i>
+                                <span class="ms-2">Articles</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (($features['articles'] ?? true) && $user->hasPermission('review_articles')): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php#review">
+                                <i class="bi bi-check-circle"></i>
+                                <span class="ms-2">Review</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (($features['houses'] ?? true) && $user->hasPermission('manage_houses')): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php#houses">
+                                <i class="bi bi-house"></i>
+                                <span class="ms-2">Houses</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (($features['businesses'] ?? true) && $user->hasPermission('manage_business')): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php#businesses">
+                                <i class="bi bi-building"></i>
+                                <span class="ms-2">Businesses</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
+                
                 <div class="mt-auto p-3">
                     <a href="logout.php" class="nav-link text-danger">
                         <i class="bi bi-box-arrow-right"></i>
@@ -202,6 +256,7 @@ try {
                 </div>
             </nav>
 
+            <!-- Main Content -->
             <main class="col-md-9 col-lg-10 main-content">
                 <div class="p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -210,7 +265,7 @@ try {
                             <p class="text-muted">Manage your roles and permissions</p>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-outline-primary d-md-none" id="sidebarToggle">
+                            <button class="btn btn-outline-secondary d-md-none" id="sidebarToggle">
                                 <i class="bi bi-list"></i>
                             </button>
                             <a href="dashboard.php" class="btn btn-outline-secondary">
@@ -351,36 +406,45 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        (function(){
-            try { var t = localStorage.getItem('dash-theme'); if (t === 'dark') document.documentElement.setAttribute('data-theme','dark'); } catch(e) {}
-        })();
-        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('dashThemeToggle');
+        const body = document.body;
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('dashboard-theme') || 'light';
+        body.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('dashboard-theme', newTheme);
+            updateThemeIcon(newTheme);
         });
         
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                document.getElementById('sidebar').classList.remove('show');
-            }
-        });
+        function updateThemeIcon(theme) {
+            const icon = themeToggle.querySelector('i');
+            icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+        
+        // Sidebar toggle for mobile
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+        }
         
         // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(event.target) && 
-                !sidebarToggle.contains(event.target) && 
-                sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(e.target) && !sidebarToggle.contains(e.target)) {
+                    sidebar.classList.remove('show');
+                }
             }
-        });
-        document.getElementById('dashThemeToggle')?.addEventListener('click', function(){
-            var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
-            try { localStorage.setItem('dash-theme', isDark ? 'light' : 'dark'); } catch(e) {}
         });
     </script>
 </body>
