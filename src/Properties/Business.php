@@ -160,6 +160,94 @@ class Business
         return !empty($this->getAllImages());
     }
 
+    public function getContactPhone(): ?string
+    {
+        return $this->business['contact_phone'] ?? null;
+    }
+
+    public function getContactWhatsapp(): ?string
+    {
+        return $this->business['contact_whatsapp'] ?? null;
+    }
+
+    public function getContactEmail(): ?string
+    {
+        return $this->business['contact_email'] ?? null;
+    }
+
+    public function getWebsiteUrl(): ?string
+    {
+        return $this->business['website_url'] ?? null;
+    }
+
+    public function getContactMethod(): string
+    {
+        return $this->business['contact_method'] ?? 'phone';
+    }
+
+    public function getContactUrl(): string
+    {
+        switch ($this->getContactMethod()) {
+            case 'whatsapp':
+                $whatsapp = $this->getContactWhatsapp();
+                return $whatsapp ? "https://wa.me/" . preg_replace('/[^0-9]/', '', $whatsapp) : '#';
+            case 'email':
+                $email = $this->getContactEmail();
+                return $email ? "mailto:$email" : '#';
+            case 'website':
+                return $this->getWebsiteUrl() ?: '#';
+            case 'phone':
+            default:
+                $phone = $this->getContactPhone();
+                return $phone ? "tel:$phone" : '#';
+        }
+    }
+
+    public function getContactText(): string
+    {
+        switch ($this->getContactMethod()) {
+            case 'whatsapp':
+                return 'WhatsApp';
+            case 'email':
+                return 'Send Email';
+            case 'website':
+                return 'Visit Website';
+            case 'phone':
+            default:
+                return 'Call Now';
+        }
+    }
+
+    public function getContactIcon(): string
+    {
+        switch ($this->getContactMethod()) {
+            case 'whatsapp':
+                return 'fa-brands fa-whatsapp';
+            case 'email':
+                return 'fa-solid fa-envelope';
+            case 'website':
+                return 'fa-solid fa-globe';
+            case 'phone':
+            default:
+                return 'fa-solid fa-phone';
+        }
+    }
+
+    public function getContactClass(): string
+    {
+        switch ($this->getContactMethod()) {
+            case 'whatsapp':
+                return 'btn-success';
+            case 'email':
+                return 'btn-primary';
+            case 'website':
+                return 'btn-info';
+            case 'phone':
+            default:
+                return 'btn-primary';
+        }
+    }
+
     public function toArray(): array
     {
         return $this->business;

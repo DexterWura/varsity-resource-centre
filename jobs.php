@@ -1,6 +1,6 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
 <?php require_once __DIR__ . '/bootstrap.php'; ?>
-<?php use Http\HttpClient; use Database\DB; use Jobs\JobAPIs; use Config\Settings; ?>
+<?php use Http\HttpClient; use Database\DB; use Jobs\JobAPIs; use Jobs\Job; use Config\Settings; ?>
 
 <?php
 // Get jobs from database and APIs, then shuffle them
@@ -9,13 +9,8 @@ $perPage = 12;
 $jobs = [];
 
 try {
-    // Get database jobs
-    $pdo = DB::pdo();
-    $stmt = $pdo->prepare('SELECT title, company_name, location, description, url FROM jobs WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY id DESC LIMIT :lim OFFSET :off');
-    $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
-    $stmt->bindValue(':off', ($page-1)*$perPage, PDO::PARAM_INT);
-    $stmt->execute();
-    $dbJobs = $stmt->fetchAll() ?: [];
+    // Get database jobs using Job class
+    $dbJobs = Job::getAll($perPage, ($page-1)*$perPage);
     
     // Get API jobs
     $settings = new Settings(__DIR__ . '/storage/settings.json');
@@ -56,24 +51,48 @@ function truncateWords(string $text, int $maxWords = 45): array {
 
     <div class="row g-3">
         <?php foreach ($jobs as $job): ?>
+            <?php 
+            // Handle both Job objects and array data
+            if ($job instanceof Job) {
+                $jobObj = $job;
+                $jobData = $job->toArray();
+            } else {
+                $jobObj = new Job($job);
+                $jobData = $job;
+            }
+            ?>
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100">
                     <div class="card-body d-flex flex-column">
-                        <h5 class="card-title mb-1"><?= htmlspecialchars($job['title'] ?? 'Job') ?></h5>
+                        <h5 class="card-title mb-1"><?= htmlspecialchars($jobObj->getTitle() ?: 'Job') ?></h5>
                         <div class="text-muted small mb-2">
-                            <?= htmlspecialchars($job['company_name'] ?? $job['company'] ?? 'Company') ?> · <?= htmlspecialchars($job['location'] ?? 'Remote/On-site') ?>
-                            <?php if (isset($job['source'])): ?>
-                                <span class="badge bg-info ms-1"><?= htmlspecialchars($job['source_display']) ?></span>
+                            <?= htmlspecialchars($jobObj->getCompany() ?: 'Company') ?> · <?= htmlspecialchars($jobObj->getLocation() ?: 'Remote/On-site') ?>
+                            <?php if (isset($jobData['source'])): ?>
+                                <span class="badge bg-info ms-1"><?= htmlspecialchars($jobData['source_display']) ?></span>
+                            <?php endif; ?>
+                            <?php if ($jobObj->getDaysUntilExpiry() !== null && $jobObj->getDaysUntilExpiry() <= 7): ?>
+                                <span class="badge bg-warning ms-1">Expires in <?= $jobObj->getDaysUntilExpiry() ?> days</span>
                             <?php endif; ?>
                         </div>
-                        <?php $desc = isset($job['description']) ? trim(strip_tags($job['description'])) : ''; list($short, $truncated) = truncateWords($desc, 45); ?>
+                        <?php $desc = $jobObj->getDescription(); list($short, $truncated) = truncateWords($desc, 45); ?>
                         <p class="card-text small flex-grow-1"><?= htmlspecialchars($short) ?></p>
                         <div class="d-flex gap-2 mt-auto">
                             <?php if ($truncated): ?>
-                                <button class="btn btn-sm btn-light pill-btn" data-bs-toggle="modal" data-bs-target="#jobModal" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>" data-location="<?= htmlspecialchars($job['location'] ?? '') ?>" data-desc="<?= htmlspecialchars($desc) ?>" data-url="<?= htmlspecialchars($job['url'] ?? '') ?>">See more</button>
+                                <button class="btn btn-sm btn-light pill-btn" data-bs-toggle="modal" data-bs-target="#jobModal" 
+                                        data-title="<?= htmlspecialchars($jobObj->getTitle()) ?>" 
+                                        data-company="<?= htmlspecialchars($jobObj->getCompany()) ?>" 
+                                        data-location="<?= htmlspecialchars($jobObj->getLocation()) ?>" 
+                                        data-desc="<?= htmlspecialchars($desc) ?>" 
+                                        data-url="<?= htmlspecialchars($jobObj->getApplicationUrl()) ?>">See more</button>
                             <?php endif; ?>
-                            <?php if (!empty($job['url'])): ?>
-                                <button class="btn btn-sm btn-primary pill-btn track-job" data-bs-toggle="modal" data-bs-target="#applyModal" data-url="<?= htmlspecialchars($job['url']) ?>" data-title="<?= htmlspecialchars($job['title'] ?? '') ?>" data-company="<?= htmlspecialchars($job['company_name'] ?? '') ?>">Apply now</button>
+                            <?php if ($jobObj->getApplicationUrl() !== '#'): ?>
+                                <a href="<?= htmlspecialchars($jobObj->getApplicationUrl()) ?>" 
+                                   class="btn btn-sm <?= $jobObj->getApplicationClass() ?> pill-btn"
+                                   <?= $jobObj->getContactMethod() === 'url' ? 'data-bs-toggle="modal" data-bs-target="#applyModal" data-url="' . htmlspecialchars($jobObj->getApplicationUrl()) . '" data-title="' . htmlspecialchars($jobObj->getTitle()) . '" data-company="' . htmlspecialchars($jobObj->getCompany()) . '"' : '' ?>
+                                   <?= in_array($jobObj->getContactMethod(), ['whatsapp', 'email']) ? 'target="_blank"' : '' ?>>
+                                    <i class="<?= $jobObj->getApplicationIcon() ?> me-1"></i>
+                                    <?= htmlspecialchars($jobObj->getApplicationText()) ?>
+                                </a>
                             <?php endif; ?>
                         </div>
                     </div>

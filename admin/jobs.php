@@ -2,16 +2,20 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
-use Auth\Auth;
+use Auth\UserAuth;
 use Database\DB;
 use Security\Csrf;
 use Jobs\JobAPIs;
+use Jobs\Job;
 use Config\Settings;
 
-$auth = new Auth(__DIR__ . '/../storage/users/admins.json');
-if (!$auth->check()) { header('Location: /admin/login.php'); exit; }
+$userAuth = new UserAuth();
+if (!$userAuth->check() || !$userAuth->user()->hasRole('admin')) { 
+    header('Location: /admin/login.php'); 
+    exit; 
+}
 
-$user = $auth->user();
+$user = $userAuth->user();
 $successMessage = '';
 $errorMessage = '';
 
@@ -27,18 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Job management
             if ($action === 'job_create') {
                 if (!empty($_POST['job_title'])) {
-                    $pdo = DB::pdo();
-                    $expiresAt = !empty($_POST['job_expires_at']) ? $_POST['job_expires_at'] : null;
-                    $stmt = $pdo->prepare('INSERT INTO jobs (title, company_name, location, description, url, expires_at, is_active) VALUES (?,?,?,?,?,?,1)');
-                    $stmt->execute([
-                        $_POST['job_title'],
-                        $_POST['job_company'] ?? '',
-                        $_POST['job_location'] ?? '',
-                        $_POST['job_description'] ?? '',
-                        $_POST['job_url'] ?? '',
-                        $expiresAt,
+                    $job = new Job([
+                        'title' => $_POST['job_title'],
+                        'company' => $_POST['job_company'] ?? '',
+                        'location' => $_POST['job_location'] ?? '',
+                        'description' => $_POST['job_description'] ?? '',
+                        'job_url' => $_POST['job_url'] ?? '',
+                        'whatsapp_contact' => $_POST['job_whatsapp'] ?? '',
+                        'email_contact' => $_POST['job_email'] ?? '',
+                        'contact_method' => $_POST['job_contact_method'] ?? 'url',
+                        'expires_at' => !empty($_POST['job_expires_at']) ? $_POST['job_expires_at'] : null
                     ]);
-                    $successMessage = 'Job posted successfully.';
+                    
+                    if ($job->save()) {
+                        $successMessage = 'Job posted successfully.';
+                    } else {
+                        $errorMessage = 'Failed to create job.';
+                    }
                 }
             } elseif ($action === 'job_toggle') {
                 $pdo = DB::pdo();
@@ -279,12 +288,32 @@ $jobs = $allJobs;
                                             <textarea name="job_description" class="form-control" rows="3" placeholder="Job description..."></textarea>
                                         </div>
                                         <div class="mb-3">
+                                            <label class="form-label">Contact Method</label>
+                                            <select name="job_contact_method" class="form-select" required>
+                                                <option value="url">Job URL (External Link)</option>
+                                                <option value="whatsapp">WhatsApp Contact</option>
+                                                <option value="email">Email Contact</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3" id="job_url_field">
                                             <label class="form-label">Job URL</label>
                                             <input name="job_url" class="form-control" placeholder="https://..." type="url">
+                                            <small class="form-text text-muted">Direct link to apply for the job</small>
+                                        </div>
+                                        <div class="mb-3" id="job_whatsapp_field" style="display: none;">
+                                            <label class="form-label">WhatsApp Number</label>
+                                            <input name="job_whatsapp" class="form-control" placeholder="+263771234567" type="tel">
+                                            <small class="form-text text-muted">Include country code (e.g., +263 for Zimbabwe)</small>
+                                        </div>
+                                        <div class="mb-3" id="job_email_field" style="display: none;">
+                                            <label class="form-label">Email Address</label>
+                                            <input name="job_email" class="form-control" placeholder="hr@company.com" type="email">
+                                            <small class="form-text text-muted">Email for job applications</small>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Expiry Date</label>
                                             <input name="job_expires_at" class="form-control" type="datetime-local">
+                                            <small class="form-text text-muted">Leave empty for no expiry</small>
                                         </div>
                                         <button class="btn btn-primary" type="submit">Post Job</button>
                                     </form>
@@ -373,6 +402,41 @@ $jobs = $allJobs;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Contact method form handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const contactMethodSelect = document.querySelector('select[name="job_contact_method"]');
+            const urlField = document.getElementById('job_url_field');
+            const whatsappField = document.getElementById('job_whatsapp_field');
+            const emailField = document.getElementById('job_email_field');
+            
+            function toggleContactFields() {
+                const method = contactMethodSelect.value;
+                
+                // Hide all fields
+                urlField.style.display = 'none';
+                whatsappField.style.display = 'none';
+                emailField.style.display = 'none';
+                
+                // Show relevant field
+                switch(method) {
+                    case 'url':
+                        urlField.style.display = 'block';
+                        break;
+                    case 'whatsapp':
+                        whatsappField.style.display = 'block';
+                        break;
+                    case 'email':
+                        emailField.style.display = 'block';
+                        break;
+                }
+            }
+            
+            if (contactMethodSelect) {
+                contactMethodSelect.addEventListener('change', toggleContactFields);
+                toggleContactFields(); // Initial call
+            }
+        });
+        
         // Theme toggle functionality
         const themeToggle = document.getElementById('dashThemeToggle');
         const body = document.body;
