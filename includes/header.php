@@ -70,30 +70,16 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
-	<!-- <link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css"> - Temporarily disabled for testing -->
-	<!-- <script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script> - Temporarily disabled for testing -->
+	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css">
+	<script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script>
 	<script>
 		// Ensure dropdowns work properly
 		document.addEventListener('DOMContentLoaded', function() {
-			// Bootstrap 5 handles dropdowns automatically, no manual initialization needed
-			console.log('Bootstrap dropdowns should work automatically');
-			
-			// Initialize Bootstrap dropdown manually
+			// Initialize Bootstrap dropdown manually (required for this site)
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
-				console.log('Tools dropdown found in official site');
-				
 				// Manually initialize Bootstrap dropdown
 				var dropdown = new bootstrap.Dropdown(toolsDropdown);
-				console.log('Bootstrap dropdown initialized manually');
-				
-				// Test the dropdown
-				toolsDropdown.addEventListener('click', function(e) {
-					console.log('Tools dropdown clicked - manually toggling');
-					dropdown.toggle();
-				});
-			} else {
-				console.log('Tools dropdown NOT found in official site');
 			}
 			
 			// Sticky Navigation Functionality

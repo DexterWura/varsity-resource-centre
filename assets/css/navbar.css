@@ -64,7 +64,7 @@ body.navbar-sticky {
 
 .dropdown-item:hover {
     background-color: #f8f9fa;
-    /* transform: translateX(5px); - Temporarily disabled to test dropdown */
+    transform: translateX(5px);
 }
 
 .dropdown-header {
