@@ -41,13 +41,143 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dir = __DIR__ . '/../db/migration';
             $files = glob($dir . '/*.sql');
             sort($files);
+            
+            $migrationErrors = [];
+            $successfulMigrations = [];
+            
             foreach ($files as $file) {
+                $filename = basename($file);
                 $sql = file_get_contents($file) ?: '';
                 if ($sql === '') { continue; }
+                
                 // Remove CREATE DATABASE/USE lines for shared hosts
                 $sql = preg_replace('/^\s*CREATE\s+DATABASE[\s\S]*?;\s*/im', '', $sql);
                 $sql = preg_replace('/^\s*USE\s+[^;]+;\s*/im', '', $sql);
-                $pdo->exec($sql);
+                
+                try {
+                    $pdo->exec($sql);
+                    $successfulMigrations[] = $filename;
+                } catch (Exception $e) {
+                    $migrationErrors[] = "$filename: " . $e->getMessage();
+                    // Continue with other migrations even if one fails
+                }
+            }
+            
+            // If there were migration errors, log them but continue
+            if (!empty($migrationErrors)) {
+                error_log("Migration errors during installation: " . implode("; ", $migrationErrors));
+            }
+            
+            // Ensure essential tables exist (fallback if migrations failed)
+            $essentialTables = [
+                'users' => "CREATE TABLE IF NOT EXISTS users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    email VARCHAR(255) NOT NULL UNIQUE,
+                    full_name VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                
+                'roles' => "CREATE TABLE IF NOT EXISTS roles (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(50) NOT NULL UNIQUE,
+                    permissions JSON,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                
+                'user_roles' => "CREATE TABLE IF NOT EXISTS user_roles (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    role_id INT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+                    UNIQUE KEY unique_user_role (user_id, role_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                
+                'jobs' => "CREATE TABLE IF NOT EXISTS jobs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    company_name VARCHAR(255) DEFAULT NULL,
+                    location VARCHAR(255) DEFAULT NULL,
+                    description MEDIUMTEXT,
+                    url VARCHAR(1024) DEFAULT NULL,
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                
+                'houses' => "CREATE TABLE IF NOT EXISTS houses (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    price DECIMAL(10,2) DEFAULT NULL,
+                    location VARCHAR(255) DEFAULT NULL,
+                    bedrooms INT DEFAULT NULL,
+                    bathrooms INT DEFAULT NULL,
+                    area_sqft INT DEFAULT NULL,
+                    property_type VARCHAR(100) DEFAULT 'House',
+                    status VARCHAR(50) DEFAULT 'For Rent',
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                
+                'businesses' => "CREATE TABLE IF NOT EXISTS businesses (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    category VARCHAR(100) DEFAULT NULL,
+                    location VARCHAR(255) DEFAULT NULL,
+                    phone VARCHAR(20) DEFAULT NULL,
+                    email VARCHAR(255) DEFAULT NULL,
+                    website VARCHAR(500) DEFAULT NULL,
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                
+                'articles' => "CREATE TABLE IF NOT EXISTS articles (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    content LONGTEXT,
+                    author VARCHAR(255) DEFAULT NULL,
+                    published_at TIMESTAMP NULL DEFAULT NULL,
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            ];
+            
+            // Create essential tables if they don't exist
+            foreach ($essentialTables as $tableName => $sql) {
+                try {
+                    $pdo->exec($sql);
+                } catch (Exception $e) {
+                    error_log("Failed to create essential table $tableName: " . $e->getMessage());
+                }
+            }
+            
+            // Insert essential data
+            try {
+                // Insert default roles
+                $pdo->exec("INSERT IGNORE INTO roles (name, permissions) VALUES 
+                    ('admin', '[\"admin\", \"manage_users\", \"manage_content\", \"manage_settings\"]'),
+                    ('user', '[\"view_content\", \"create_content\"]')
+                ");
+                
+                // Insert admin user
+                $adminPassword = password_hash($adminPassword, PASSWORD_DEFAULT);
+                $pdo->exec("INSERT IGNORE INTO users (email, full_name, password_hash, is_active) VALUES 
+                    ('$adminEmail', 'Super Admin', '$adminPassword', 1)
+                ");
+                
+                // Assign admin role to admin user
+                $pdo->exec("INSERT IGNORE INTO user_roles (user_id, role_id) 
+                    SELECT u.id, r.id 
+                    FROM users u, roles r 
+                    WHERE u.email = '$adminEmail' AND r.name = 'admin'
+                ");
+            } catch (Exception $e) {
+                error_log("Failed to insert essential data: " . $e->getMessage());
             }
             // Load template and update with user settings
             $templateFile = __DIR__ . '/../storage/app.php.template';
