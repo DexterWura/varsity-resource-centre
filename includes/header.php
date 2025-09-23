@@ -71,15 +71,12 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/style.css">
 	<link rel="stylesheet" href="<?= htmlspecialchars($base) ?>/assets/css/navbar.css">
-	<script src="<?= htmlspecialchars($base) ?>/assets/js/animations.js"></script>
 	<script>
-		// Ensure dropdowns work properly
+		// Initialize Tools dropdown
 		document.addEventListener('DOMContentLoaded', function() {
-			// Initialize Bootstrap dropdown manually (required for this site)
 			var toolsDropdown = document.getElementById('toolsDropdown');
 			if (toolsDropdown) {
-				// Manually initialize Bootstrap dropdown
-				var dropdown = new bootstrap.Dropdown(toolsDropdown);
+				new bootstrap.Dropdown(toolsDropdown);
 			}
 			
 			// Sticky Navigation Functionality
