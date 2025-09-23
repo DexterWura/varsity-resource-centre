@@ -52,6 +52,36 @@ foreach (array_slice($logoFiles, 0, 6) as $i => $path) {
         </div>
     </section>
 
+    <!-- Call to Action Section (only for non-logged-in users) -->
+    <?php 
+    use Auth\UserAuth;
+    $userAuth = new UserAuth();
+    if (!$userAuth->check()): 
+    ?>
+    <section class="mb-4 section-animate">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-4">
+                <h3 class="h4 mb-3">Join the Varsity Community</h3>
+                <p class="text-muted mb-4">Get personalized job recommendations, save your favorite articles, and connect with other students.</p>
+                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                    <a href="<?= htmlspecialchars($base) ?>/register.php" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-user-plus me-2"></i>Create Free Account
+                    </a>
+                    <a href="<?= htmlspecialchars($base) ?>/login.php" class="btn btn-outline-primary btn-lg">
+                        <i class="fa-solid fa-sign-in-alt me-2"></i>Already have an account?
+                    </a>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fa-solid fa-shield-alt me-1"></i>
+                        Free to join • No spam • Unsubscribe anytime
+                    </small>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <?php $siteConfig = is_file(__DIR__ . '/storage/app.php') ? (include __DIR__ . '/storage/app.php') : []; ?>
     <?php if (($siteConfig['features']['articles'] ?? true)): ?>
     <section class="mb-4 section-animate">

@@ -4,9 +4,11 @@ $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
 if ($base === '') { $base = ''; }
 use Config\Settings;
 use Auth\Auth;
+use Auth\UserAuth;
 require_once __DIR__ . '/../bootstrap.php';
 $settings = new Settings(__DIR__ . '/../storage/settings.json');
 $auth = new Auth(__DIR__ . '/../storage/users/admins.json');
+$userAuth = new UserAuth();
 $siteConfig = is_file(__DIR__ . '/../storage/app.php') ? (include __DIR__ . '/../storage/app.php') : [];
 $siteName = $siteConfig['site_name'] ?? 'Varsity Resource Centre';
 $primaryColor = $siteConfig['theme']['primary'] ?? ($settings->get('theme')['primary'] ?? '#0d6efd');
@@ -94,6 +96,40 @@ $currentUrl = $scheme . '://' . $host . $requestUri;
 					<?php if (($siteConfig['features']['articles'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/articles.php">Articles</a></li><?php endif; ?>
 					<?php if (($siteConfig['features']['news'] ?? true)): ?><li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/news.php">News</a></li><?php endif; ?>
 					<li class="nav-item"><a class="nav-link" href="<?= htmlspecialchars($base) ?>/resume.php">Resume</a></li>
+					
+					<!-- User Authentication Links -->
+					<?php if ($userAuth->check()): ?>
+						<!-- Logged in user menu -->
+						<li class="nav-item dropdown">
+							<a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+								<i class="fa-solid fa-user me-1"></i><?= htmlspecialchars($userAuth->user()->getFullName()) ?>
+							</a>
+							<ul class="dropdown-menu dropdown-menu-end">
+								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/dashboard.php">
+									<i class="fa-solid fa-tachometer-alt me-2"></i>Dashboard
+								</a></li>
+								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/user_roles.php">
+									<i class="fa-solid fa-user-cog me-2"></i>Profile
+								</a></li>
+								<li><hr class="dropdown-divider"></li>
+								<li><a class="dropdown-item" href="<?= htmlspecialchars($base) ?>/logout.php">
+									<i class="fa-solid fa-sign-out-alt me-2"></i>Logout
+								</a></li>
+							</ul>
+						</li>
+					<?php else: ?>
+						<!-- Not logged in -->
+						<li class="nav-item">
+							<a class="nav-link" href="<?= htmlspecialchars($base) ?>/login.php">
+								<i class="fa-solid fa-sign-in-alt me-1"></i>Login
+							</a>
+						</li>
+						<li class="nav-item">
+							<a class="btn btn-primary btn-sm ms-2" href="<?= htmlspecialchars($base) ?>/register.php">
+								<i class="fa-solid fa-user-plus me-1"></i>Sign Up
+							</a>
+						</li>
+					<?php endif; ?>
 				</ul>
 			</div>
 		</div>
