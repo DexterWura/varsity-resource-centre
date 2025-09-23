@@ -344,7 +344,7 @@ class Article
         return $this->article['excerpt'];
     }
 
-    public function getFeaturedImage(): string
+    public function getFeaturedImageUrl(): string
     {
         return $this->article['featured_image'];
     }
@@ -487,11 +487,6 @@ class Article
         return $imageManager->deleteImage($imageId);
     }
 
-    public function getFeaturedImageUrl(): ?string
-    {
-        $featuredImage = $this->getFeaturedImage();
-        return $featuredImage ? $featuredImage['image_url'] : null;
-    }
 
     public function hasImages(): bool
     {
