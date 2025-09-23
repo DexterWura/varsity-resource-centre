@@ -164,17 +164,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ('user', '[\"view_content\", \"create_content\"]')
                 ");
                 
-                // Insert admin user
-                $adminPassword = password_hash($adminPassword, PASSWORD_DEFAULT);
+                // Insert default admin user (will be updated later with custom credentials)
+                $defaultPassword = password_hash('admin123', PASSWORD_DEFAULT);
                 $pdo->exec("INSERT IGNORE INTO users (email, full_name, password_hash, is_active) VALUES 
-                    ('$adminEmail', 'Super Admin', '$adminPassword', 1)
+                    ('admin@varsityresource.com', 'Super Admin', '$defaultPassword', 1)
                 ");
                 
-                // Assign admin role to admin user
+                // Assign admin role to default admin user
                 $pdo->exec("INSERT IGNORE INTO user_roles (user_id, role_id) 
                     SELECT u.id, r.id 
                     FROM users u, roles r 
-                    WHERE u.email = '$adminEmail' AND r.name = 'admin'
+                    WHERE u.email = 'admin@varsityresource.com' AND r.name = 'admin'
                 ");
             } catch (Exception $e) {
                 error_log("Failed to insert essential data: " . $e->getMessage());
@@ -200,6 +200,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Create custom admin user
             $adminEmail = trim((string)($_POST['admin_email'] ?? 'admin@varsityresource.com'));
             $adminPassword = (string)($_POST['admin_password'] ?? 'admin123');
+            
+            // Ensure we have valid credentials
+            if (empty($adminEmail) || empty($adminPassword)) {
+                throw new Exception('Admin email and password are required');
+            }
             
             // Update the default admin user with custom credentials
             $stmt = $pdo->prepare('
