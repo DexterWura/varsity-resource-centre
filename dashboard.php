@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$isDraft = isset($_POST['save_draft']);
 				$isSubmit = isset($_POST['submit_for_review']);
 				
-				if ($title === '' || $content === '') {
-					throw new \RuntimeException('Title and content are required. Please make sure you have entered both a title and some content for your article.');
+				if ($title === '' || $content === '' || $excerpt === '') {
+					throw new \RuntimeException('Title, content, and excerpt are required. Please make sure you have entered all three fields for your article.');
 				}
 				
 				$status = $isSubmit ? 'submitted' : 'draft';
@@ -705,7 +705,7 @@ try {
 											<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 											<div class="mb-3">
 												<label class="form-label">Title</label>
-												<input name="title" class="form-control" placeholder="Enter title">
+												<input name="title" class="form-control" placeholder="Enter title" required>
 											</div>
 											<div class="mb-3">
                                             <label class="form-label">Content</label>
@@ -728,15 +728,15 @@ try {
                                             <textarea name="content" id="editorInput" class="d-none"></textarea>
 											</div>
 											<div class="mb-3">
-												<label class="form-label">Excerpt (optional)</label>
-												<textarea name="excerpt" rows="2" class="form-control" placeholder="Short summary"></textarea>
+												<label class="form-label">Excerpt</label>
+												<textarea name="excerpt" rows="2" class="form-control" placeholder="Short summary" required></textarea>
 											</div>
 											<div class="d-flex gap-2">
 												<button class="btn btn-outline-secondary" type="submit" name="save_draft">Save Draft</button>
 												<button class="btn btn-primary" type="submit" name="submit_for_review">Submit for Review</button>
 											</div>
 											<div class="mt-2">
-												<small class="text-muted">Make sure to enter both a title and content before submitting.</small>
+												<small class="text-muted">Make sure to enter a title, content, and excerpt before submitting.</small>
 											</div>
 										</form>
 									</div>
@@ -1032,11 +1032,28 @@ try {
                         hidden.value = content;
                         console.log('Final sync - Content length:', hidden.value.length, 'characters');
                         
-                        // If content is still empty, prevent submission
+                        // Check if all required fields are filled
+                        var title = form.querySelector('input[name="title"]').value.trim();
+                        var excerpt = form.querySelector('textarea[name="excerpt"]').value.trim();
+                        
+                        if (!title) {
+                            e.preventDefault();
+                            alert('Please enter a title for your article.');
+                            form.querySelector('input[name="title"]').focus();
+                            return false;
+                        }
+                        
                         if (!content.trim()) {
                             e.preventDefault();
                             alert('Please enter some content for your article.');
                             editable.focus();
+                            return false;
+                        }
+                        
+                        if (!excerpt) {
+                            e.preventDefault();
+                            alert('Please enter an excerpt for your article.');
+                            form.querySelector('textarea[name="excerpt"]').focus();
                             return false;
                         }
                     }
