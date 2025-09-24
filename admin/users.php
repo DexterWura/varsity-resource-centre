@@ -28,15 +28,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Role management
             if ($action === 'approve_role') {
                 $pdo = DB::pdo();
-                $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "approved", reviewed_at = NOW(), granted_by = 1 WHERE id = ?');
-                $stmt->execute([(int)$_POST['role_id']]);
-                $successMessage = 'Role request approved.';
+                $requestId = (int)$_POST['role_id'];
+                
+                // Get the role request details
+                $stmt = $pdo->prepare('SELECT user_id, role_id FROM user_role_requests WHERE id = ?');
+                $stmt->execute([$requestId]);
+                $request = $stmt->fetch();
+                
+                if ($request) {
+                    // Update the request status
+                    $stmt = $pdo->prepare('UPDATE user_role_requests SET status = "approved", reviewed_at = NOW(), reviewed_by = ? WHERE id = ?');
+                    $stmt->execute([$user->getId(), $requestId]);
+                    
+                    // Add the role to user_roles table
+                    $stmt = $pdo->prepare('INSERT IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)');
+                    $stmt->execute([$request['user_id'], $request['role_id']]);
+                    
+                    $successMessage = 'Role request approved and role assigned.';
+                } else {
+                    $errorMessage = 'Role request not found.';
+                }
                 
             } elseif ($action === 'reject_role') {
                 $pdo = DB::pdo();
+                $requestId = (int)$_POST['role_id'];
                 $notes = trim($_POST['reject_notes'] ?? '');
-                $stmt = $pdo->prepare('UPDATE user_role_assignments SET status = "rejected", reviewed_at = NOW(), granted_by = 1, notes = ? WHERE id = ?');
-                $stmt->execute([$notes, (int)$_POST['role_id']]);
+                
+                $stmt = $pdo->prepare('UPDATE user_role_requests SET status = "rejected", reviewed_at = NOW(), reviewed_by = ?, review_notes = ? WHERE id = ?');
+                $stmt->execute([$user->getId(), $notes, $requestId]);
                 $successMessage = 'Role request rejected.';
             }
             
@@ -50,13 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     $pdo = DB::pdo();
     $roleRequests = $pdo->query('
-        SELECT ura.id, ura.user_id, ura.status, ura.requested_at, ura.reviewed_at, ura.notes,
-               u.full_name, u.email, ur.name as role_name, ur.description as role_description
-        FROM user_role_assignments ura
-        JOIN users u ON ura.user_id = u.id
-        JOIN user_roles ur ON ura.role_id = ur.id
-        WHERE ura.status = "pending"
-        ORDER BY ura.requested_at DESC
+        SELECT urr.id, urr.user_id, urr.status, urr.requested_at, urr.reviewed_at, urr.review_notes as notes, urr.reason,
+               u.full_name, u.email, r.name as role_name, r.description as role_description
+        FROM user_role_requests urr
+        JOIN users u ON urr.user_id = u.id
+        JOIN roles r ON urr.role_id = r.id
+        WHERE urr.status = "pending"
+        ORDER BY urr.requested_at DESC
     ')->fetchAll();
 } catch (\Throwable $e) {
     $roleRequests = [];
@@ -240,6 +259,7 @@ try {
                                                 <th>User</th>
                                                 <th>Email</th>
                                                 <th>Requested Role</th>
+                                                <th>Reason</th>
                                                 <th>Date</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -252,6 +272,9 @@ try {
                                                     <td>
                                                         <span class="badge bg-primary"><?= htmlspecialchars($request['role_name']) ?></span>
                                                         <br><small class="text-muted"><?= htmlspecialchars($request['role_description']) ?></small>
+                                                    </td>
+                                                    <td>
+                                                        <small class="text-muted"><?= htmlspecialchars($request['reason']) ?></small>
                                                     </td>
                                                     <td><?= date('M j, Y', strtotime($request['requested_at'])) ?></td>
                                                     <td>

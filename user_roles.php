@@ -85,8 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get user's current roles
 $userRoles = $user->getRoles();
-error_log('User roles count: ' . count($userRoles));
-error_log('User ID: ' . $user->getId());
 
 // Get available roles for request
 $availableRoles = [];
@@ -106,19 +104,8 @@ try {
     ');
     $stmt->execute([$user->getId(), $user->getId()]);
     $availableRoles = $stmt->fetchAll();
-    
-    // Debug: Log the available roles
-    error_log('Available roles count: ' . count($availableRoles));
-    if (count($availableRoles) > 0) {
-        error_log('First role: ' . json_encode($availableRoles[0]));
-    }
-    
-    // Debug: Check if roles table has any data
-    $allRolesStmt = $pdo->query('SELECT COUNT(*) as count FROM roles');
-    $allRolesCount = $allRolesStmt->fetchColumn();
-    error_log('Total roles in database: ' . $allRolesCount);
 } catch (Exception $e) {
-    error_log('Error fetching available roles: ' . $e->getMessage());
+    // Handle error silently
 }
 
 // Get user's pending role requests
