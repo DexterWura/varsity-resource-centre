@@ -185,13 +185,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				if (!($features['businesses'] ?? true)) { throw new \RuntimeException('Businesses are disabled.'); }
 				$userAuth->requirePermission('manage_business');
 				$pdo = DB::pdo();
+				
 				$name = trim($_POST['name'] ?? '');
-				$category = trim($_POST['category'] ?? '');
-				$city = trim($_POST['city'] ?? '');
+				$description = trim($_POST['description'] ?? '');
+				$categoryId = (int)($_POST['category_id'] ?? 0);
+				$cityId = (int)($_POST['city_id'] ?? 0);
+				$universityId = (int)($_POST['university_id'] ?? 0);
+				$campusId = (int)($_POST['campus_id'] ?? 0);
+				$contactName = trim($_POST['contact_name'] ?? '');
+				$contactEmail = trim($_POST['contact_email'] ?? '');
+				$contactPhone = trim($_POST['contact_phone'] ?? '');
+				$website = trim($_POST['website'] ?? '');
+				$hoursOfOperation = $_POST['hours_of_operation'] ?? [];
+				
 				if ($name === '') { throw new \RuntimeException('Business name is required.'); }
-				$stmt = $pdo->prepare('INSERT INTO businesses (name, category, city, owner_id, is_active) VALUES (?, ?, ?, ?, 1)');
-				$stmt->execute([$name, $category, $city, $user->getId()]);
-				$successMessage = 'Business created.';
+				if ($categoryId <= 0) { throw new \RuntimeException('Please select a category.'); }
+				if ($cityId <= 0) { throw new \RuntimeException('Please select a city.'); }
+				
+				// Start transaction
+				$pdo->beginTransaction();
+				
+				try {
+					// Insert business
+					$stmt = $pdo->prepare('
+						INSERT INTO businesses (name, description, category_id, city_id, university_id, campus_id, 
+						                       contact_name, contact_email, contact_phone, website, hours_of_operation, owner_id, is_active) 
+						VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+					');
+					$stmt->execute([
+						$name, $description, $categoryId, $cityId, $universityId, $campusId,
+						$contactName, $contactEmail, $contactPhone, $website, json_encode($hoursOfOperation), $user->getId()
+					]);
+					
+					$businessId = $pdo->lastInsertId();
+					
+					// Insert business hours
+					$hoursStmt = $pdo->prepare('
+						INSERT INTO business_hours (business_id, day_of_week, open_time, close_time, is_closed) 
+						VALUES (?, ?, ?, ?, ?)
+					');
+					
+					$days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+					foreach ($days as $day) {
+						$dayHours = $hoursOfOperation[$day] ?? [];
+						$isClosed = isset($dayHours['closed']) && $dayHours['closed'] === '1';
+						$openTime = $isClosed ? null : ($dayHours['open'] ?? null);
+						$closeTime = $isClosed ? null : ($dayHours['close'] ?? null);
+						
+						$hoursStmt->execute([$businessId, $day, $openTime, $closeTime, $isClosed ? 1 : 0]);
+					}
+					
+					$pdo->commit();
+					$successMessage = 'Business created successfully.';
+					
+				} catch (Exception $e) {
+					$pdo->rollBack();
+					throw $e;
+				}
 			} elseif ($action === 'business_toggle') {
 				if (!($features['businesses'] ?? true)) { throw new \RuntimeException('Businesses are disabled.'); }
 				$userAuth->requirePermission('manage_business');
@@ -228,6 +278,31 @@ try {
     ');
     $stmt->execute([$user->getId()]);
     $roleRequests = $stmt->fetchAll();
+} catch (\Throwable $e) {
+    // Handle error silently
+}
+
+// Get lookup data for business form
+$cities = [];
+$universities = [];
+$campuses = [];
+$businessCategories = [];
+
+try {
+    $pdo = DB::pdo();
+    
+    // Get cities
+    $cities = $pdo->query('SELECT id, name FROM cities WHERE is_active = 1 ORDER BY name')->fetchAll();
+    
+    // Get universities
+    $universities = $pdo->query('SELECT id, name FROM universities WHERE is_active = 1 ORDER BY name')->fetchAll();
+    
+    // Get campuses
+    $campuses = $pdo->query('SELECT id, name, university_id FROM campuses WHERE is_active = 1 ORDER BY name')->fetchAll();
+    
+    // Get business categories
+    $businessCategories = $pdo->query('SELECT id, name FROM business_categories WHERE is_active = 1 ORDER BY name')->fetchAll();
+    
 } catch (\Throwable $e) {
     // Handle error silently
 }
@@ -655,10 +730,117 @@ try {
 										<form method="post">
 											<input type="hidden" name="action" value="business_create">
 											<input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-											<div class="mb-2"><label class="form-label">Name</label><input name="name" class="form-control"></div>
-											<div class="mb-2"><label class="form-label">Category</label><input name="category" class="form-control"></div>
-											<div class="mb-2"><label class="form-label">City</label><input name="city" class="form-control"></div>
-											<button class="btn btn-primary" type="submit">Create</button>
+											
+											<div class="row">
+												<div class="col-md-6">
+													<div class="mb-3">
+														<label class="form-label">Business Name *</label>
+														<input name="name" class="form-control" required>
+													</div>
+												</div>
+												<div class="col-md-6">
+													<div class="mb-3">
+														<label class="form-label">Category *</label>
+														<select name="category_id" class="form-select" required>
+															<option value="">Select Category</option>
+															<?php foreach ($businessCategories as $category): ?>
+																<option value="<?= htmlspecialchars((string)$category['id']) ?>"><?= htmlspecialchars($category['name']) ?></option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+												</div>
+											</div>
+											
+											<div class="mb-3">
+												<label class="form-label">Description</label>
+												<textarea name="description" class="form-control" rows="3" placeholder="Describe what your business is about..."></textarea>
+											</div>
+											
+											<div class="row">
+												<div class="col-md-4">
+													<div class="mb-3">
+														<label class="form-label">City *</label>
+														<select name="city_id" class="form-select" required>
+															<option value="">Select City</option>
+															<?php foreach ($cities as $city): ?>
+																<option value="<?= htmlspecialchars((string)$city['id']) ?>"><?= htmlspecialchars($city['name']) ?></option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+												</div>
+												<div class="col-md-4">
+													<div class="mb-3">
+														<label class="form-label">University</label>
+														<select name="university_id" class="form-select" id="universitySelect">
+															<option value="">Select University</option>
+															<?php foreach ($universities as $university): ?>
+																<option value="<?= htmlspecialchars((string)$university['id']) ?>"><?= htmlspecialchars($university['name']) ?></option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+												</div>
+												<div class="col-md-4">
+													<div class="mb-3">
+														<label class="form-label">Campus</label>
+														<select name="campus_id" class="form-select" id="campusSelect" disabled>
+															<option value="">Select Campus</option>
+														</select>
+													</div>
+												</div>
+											</div>
+											
+											<div class="row">
+												<div class="col-md-4">
+													<div class="mb-3">
+														<label class="form-label">Contact Name</label>
+														<input name="contact_name" class="form-control" placeholder="Owner/Manager name">
+													</div>
+												</div>
+												<div class="col-md-4">
+													<div class="mb-3">
+														<label class="form-label">Contact Email</label>
+														<input name="contact_email" type="email" class="form-control" placeholder="contact@business.com">
+													</div>
+												</div>
+												<div class="col-md-4">
+													<div class="mb-3">
+														<label class="form-label">Contact Phone</label>
+														<input name="contact_phone" class="form-control" placeholder="+27 XX XXX XXXX">
+													</div>
+												</div>
+											</div>
+											
+											<div class="mb-3">
+												<label class="form-label">Website</label>
+												<input name="website" type="url" class="form-control" placeholder="https://www.business.com">
+											</div>
+											
+											<div class="mb-3">
+												<label class="form-label">Hours of Operation</label>
+												<div class="row">
+													<?php 
+													$days = ['monday' => 'Monday', 'tuesday' => 'Tuesday', 'wednesday' => 'Wednesday', 'thursday' => 'Thursday', 'friday' => 'Friday', 'saturday' => 'Saturday', 'sunday' => 'Sunday'];
+													foreach ($days as $dayKey => $dayName): 
+													?>
+													<div class="col-md-6 mb-2">
+														<div class="d-flex align-items-center">
+															<div class="form-check me-2">
+																<input class="form-check-input" type="checkbox" name="hours_of_operation[<?= $dayKey ?>][closed]" value="1" id="closed_<?= $dayKey ?>">
+																<label class="form-check-label" for="closed_<?= $dayKey ?>">Closed</label>
+															</div>
+															<div class="flex-grow-1 d-flex align-items-center">
+																<label class="form-label me-2 mb-0" style="min-width: 60px;"><?= $dayName ?></label>
+																<input type="time" name="hours_of_operation[<?= $dayKey ?>][open]" class="form-control form-control-sm me-1" style="width: 100px;">
+																<span class="me-1">to</span>
+																<input type="time" name="hours_of_operation[<?= $dayKey ?>][close]" class="form-control form-control-sm" style="width: 100px;">
+															</div>
+														</div>
+													</div>
+													<?php endforeach; ?>
+												</div>
+											</div>
+											
+											<button class="btn btn-primary" type="submit">Create Business</button>
 										</form>
 									</div>
 								</div>
@@ -1071,6 +1253,50 @@ try {
             var toolbar = ed.previousElementSibling;
             var hidden = ed.nextElementSibling;
             bindEditor(toolbar, ed, hidden);
+        });
+        
+        // University-Campus relationship
+        const universitySelect = document.getElementById('universitySelect');
+        const campusSelect = document.getElementById('campusSelect');
+        const campuses = <?= json_encode($campuses) ?>;
+        
+        if (universitySelect && campusSelect) {
+            universitySelect.addEventListener('change', function() {
+                const universityId = this.value;
+                campusSelect.innerHTML = '<option value="">Select Campus</option>';
+                
+                if (universityId) {
+                    campusSelect.disabled = false;
+                    const universityCampuses = campuses.filter(campus => campus.university_id == universityId);
+                    universityCampuses.forEach(campus => {
+                        const option = document.createElement('option');
+                        option.value = campus.id;
+                        option.textContent = campus.name;
+                        campusSelect.appendChild(option);
+                    });
+                } else {
+                    campusSelect.disabled = true;
+                }
+            });
+        }
+        
+        // Hours of operation checkboxes
+        document.querySelectorAll('input[type="checkbox"][name*="closed"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const dayKey = this.name.match(/\[([^\]]+)\]/)[1];
+                const openInput = document.querySelector(`input[name="hours_of_operation[${dayKey}][open]"]`);
+                const closeInput = document.querySelector(`input[name="hours_of_operation[${dayKey}][close]"]`);
+                
+                if (this.checked) {
+                    openInput.disabled = true;
+                    closeInput.disabled = true;
+                    openInput.value = '';
+                    closeInput.value = '';
+                } else {
+                    openInput.disabled = false;
+                    closeInput.disabled = false;
+                }
+            });
         });
     </script>
 </body>
