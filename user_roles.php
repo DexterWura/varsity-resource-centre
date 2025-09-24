@@ -231,7 +231,7 @@ $features = $siteConfig['features'] ?? [
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#profile" data-section="profile">
+                            <a class="nav-link" href="dashboard.php#profile" data-section="profile">
                                 <i class="bi bi-person"></i>
                                 <span class="ms-2">Profile</span>
                             </a>
@@ -244,7 +244,7 @@ $features = $siteConfig['features'] ?? [
                         </li>
                         <?php if (($features['articles'] ?? true) && $user->hasPermission('write_articles')): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php#articles">
+                            <a class="nav-link" href="dashboard.php#articles" data-section="articles">
                                 <i class="bi bi-file-text"></i>
                                 <span class="ms-2">Articles</span>
                             </a>
@@ -252,7 +252,7 @@ $features = $siteConfig['features'] ?? [
                         <?php endif; ?>
                         <?php if (($features['articles'] ?? true) && $user->hasPermission('review_articles')): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php#review">
+                            <a class="nav-link" href="dashboard.php#review" data-section="review">
                                 <i class="bi bi-check-circle"></i>
                                 <span class="ms-2">Review</span>
                             </a>
@@ -260,21 +260,28 @@ $features = $siteConfig['features'] ?? [
                         <?php endif; ?>
                         <?php if (($features['houses'] ?? true) && $user->hasPermission('manage_houses')): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php#houses">
+                            <a class="nav-link" href="dashboard.php#houses" data-section="houses">
                                 <i class="bi bi-house"></i>
                                 <span class="ms-2">Houses</span>
                             </a>
                         </li>
                         <?php endif; ?>
-                        <?php if (($features['businesses'] ?? true) && $user->hasPermission('manage_businesses')): ?>
+                        <?php if (($features['businesses'] ?? true) && $user->hasPermission('manage_business')): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php#businesses">
+                            <a class="nav-link" href="dashboard.php#businesses" data-section="businesses">
                                 <i class="bi bi-building"></i>
                                 <span class="ms-2">Businesses</span>
                             </a>
                         </li>
                         <?php endif; ?>
                     </ul>
+                </div>
+                
+                <div class="mt-auto p-3">
+                    <a href="logout.php" class="nav-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="ms-2">Logout</span>
+                    </a>
                 </div>
             </nav>
             
