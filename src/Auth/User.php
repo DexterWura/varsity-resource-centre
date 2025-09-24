@@ -130,8 +130,12 @@ class User
             $this->permissions = [];
             foreach ($this->roles as $role) {
                 $permissions = json_decode($role['permissions'], true) ?? [];
-                $this->permissions = array_merge($this->permissions, $permissions);
+                if (is_array($permissions)) {
+                    $this->permissions = array_merge($this->permissions, $permissions);
+                }
             }
+            // Remove duplicates
+            $this->permissions = array_unique($this->permissions);
         } catch (\Throwable $e) {
             $this->roles = [];
             $this->permissions = [];
@@ -150,7 +154,7 @@ class User
 
     public function hasPermission(string $permission): bool
     {
-        return isset($this->permissions[$permission]) && $this->permissions[$permission] === true;
+        return in_array($permission, $this->permissions, true);
     }
 
     public function getRoles(): array
