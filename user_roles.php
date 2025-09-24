@@ -85,6 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get user's current roles
 $userRoles = $user->getRoles();
+error_log('User roles count: ' . count($userRoles));
+error_log('User ID: ' . $user->getId());
 
 // Get available roles for request
 $availableRoles = [];
@@ -104,8 +106,19 @@ try {
     ');
     $stmt->execute([$user->getId(), $user->getId()]);
     $availableRoles = $stmt->fetchAll();
+    
+    // Debug: Log the available roles
+    error_log('Available roles count: ' . count($availableRoles));
+    if (count($availableRoles) > 0) {
+        error_log('First role: ' . json_encode($availableRoles[0]));
+    }
+    
+    // Debug: Check if roles table has any data
+    $allRolesStmt = $pdo->query('SELECT COUNT(*) as count FROM roles');
+    $allRolesCount = $allRolesStmt->fetchColumn();
+    error_log('Total roles in database: ' . $allRolesCount);
 } catch (Exception $e) {
-    // Handle error silently
+    error_log('Error fetching available roles: ' . $e->getMessage());
 }
 
 // Get user's pending role requests
@@ -372,7 +385,7 @@ $features = $siteConfig['features'] ?? [
                                             <select name="role_id" class="form-select" required>
                                                 <option value="">Choose a role...</option>
                                                 <?php foreach ($availableRoles as $role): ?>
-                                                    <option value="<?= htmlspecialchars($role['id']) ?>">
+                                                    <option value="<?= htmlspecialchars((string)$role['id']) ?>">
                                                         <?= htmlspecialchars($role['name']) ?> - <?= htmlspecialchars($role['description'] ?? '') ?>
                                                     </option>
                                                 <?php endforeach; ?>
